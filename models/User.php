@@ -7,6 +7,11 @@ class User extends Model {
     "lastname",
   ];
 
+  protected $hidden = [
+    "name",
+    "lastname",
+  ];
+
   protected $appends = [
     "full_name"
   ];

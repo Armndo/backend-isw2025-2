@@ -1,6 +1,6 @@
 <?php
-
 include_once("models/User.php");
+header('Content-Type: application/json; charset=utf-8');
 
 $env = parse_ini_file(".env");
 foreach ($env as $key => $value) {

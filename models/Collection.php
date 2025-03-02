@@ -1,5 +1,4 @@
 <?php
-
 class Collection implements ArrayAccess, IteratorAggregate {
   private $items = [];
 
@@ -8,11 +7,11 @@ class Collection implements ArrayAccess, IteratorAggregate {
   }
 
   public function offsetSet($key, $value): void {
-  if (is_null($key)) {
-    $this->items[] = $value;
-  } else {
-    $this->items[$key] = $value;
-  }
+    if (is_null($key)) {
+      $this->items[] = $value;
+    } else {
+      $this->items[$key] = $value;
+    }
   }
 
   public function offsetExists($key): bool {
