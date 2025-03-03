@@ -31,6 +31,10 @@ class Collection implements ArrayAccess, IteratorAggregate {
   }
 
   public function toJson() {
+    return json_encode($this->toAssoc(), JSON_PRETTY_PRINT);
+  }
+
+  public function toAssoc() {
     $arr = [];
 
     foreach($this->items as $item) {

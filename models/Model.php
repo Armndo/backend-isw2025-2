@@ -1,5 +1,6 @@
 <?php
 include_once("utils/Connection.php");
+include_once("utils/Utils.php");
 include_once("Collection.php");
 
 class Model extends ArrayObject {
@@ -31,18 +32,8 @@ class Model extends ArrayObject {
     $instance = new static();
     $table = $instance->table ?? strtolower($instance::class) . "s";
     $identifier = $instance->identifier ?? "id";
-    
-    try {
-      $conn = (new Connection())->getConnection();
-      $sql = "SELECT * FROM $table where $identifier = $id";
-      $query = $conn->query($sql);
 
-      return $instance->fill($query->fetch(PDO::FETCH_ASSOC), true);
-    } catch (PDOException $e) {
-      die("Error: " . $e->getMessage());
-    } finally {
-      $conn = null;
-    }
+    return $instance->fill(Utils::runQuery("*", $table, "$identifier = $id")[0], true);
   }
 
   public static function get(...$fields) {
@@ -57,22 +48,29 @@ class Model extends ArrayObject {
       $fields = "*";
     }
 
-    try {
-      $conn = (new Connection())->getConnection();
-      $sql = "SELECT $fields FROM $table";
-      $query = $conn->query($sql);
-      $arr = [];
+    return new Collection(
+      array_map(function ($fields) {
+        return new static($fields, true);
+      }, Utils::runQuery($fields, $table, ""))
+    );
+  }
 
-      while($row = $query->fetch(PDO::FETCH_ASSOC)) {
-        $arr[] = new static($row, true);
-      }
+  public static function search(...$conditions) {
+    $instance = new static();
+    $table = $instance->table ?? strtolower($instance::class) . "s";
+    $where = "";
 
-      return new Collection($arr);
-    } catch (PDOException $e) {
-      die("Error: " . $e->getMessage());
-    } finally {
-      $conn = null;
+    if (in_array(sizeof($conditions), [2, 3]) && array_reduce($conditions, function ($a, $b) { return $a && gettype($b) !== "array"; }, true)) {
+      $where = Utils::where($conditions);
+    } else if(sizeof($conditions) === 1) {
+      $where = Utils::wheres($conditions[0]);
     }
+
+    return new Collection(
+      array_map(function ($fields) {
+        return new static($fields, true);
+      }, Utils::runQuery("*", $table, $where))
+    );
   }
 
   private function attribute($name) {

@@ -9,4 +9,4 @@ foreach ($env as $key => $value) {
   $_SERVER[$key] = $value;
 }
 
-print(json_encode(User::get()->toJson()));
+print(User::get()->toJson());
