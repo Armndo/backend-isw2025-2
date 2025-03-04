@@ -3,8 +3,11 @@ include_once("utils/Connection.php");
 include_once("utils/Utils.php");
 include_once("Collection.php");
 include_once("Query.php");
+include_once("Queryable.php");
 
 class Model extends ArrayObject {
+  use Queryable;
+
   protected $table;
   protected $identifier;
   protected $fillable = [];
@@ -31,30 +34,6 @@ class Model extends ArrayObject {
     if (in_array($name, $this->appends) && $function = $this->getFunction($name)) {
       return $this->{$function}();
     }
-  }
-
-  public static function where(...$conditions) {
-    $instance = new static();
-    $table = $instance->table ?? strtolower($instance::class) . "s";
-    $identifier = $instance->identifier ?? "id";
-
-    return new Query(static::class, $table, $identifier)->where(...$conditions);
-  }
-
-  public static function find($id) {
-    $instance = new static();
-    $table = $instance->table ?? strtolower($instance::class) . "s";
-    $identifier = $instance->identifier ?? "id";
-
-    return new Query(static::class, $table, $identifier)->find($id);
-  }
-
-  public static function get() {
-    $instance = new static();
-    $table = $instance->table ?? strtolower($instance::class) . "s";
-    $identifier = $instance->identifier ?? "id";
-
-    return new Query(static::class, $table, $identifier)->get();
   }
 
   private function getFunction($name) {
