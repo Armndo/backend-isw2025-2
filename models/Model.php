@@ -46,6 +46,24 @@ class Model extends ArrayObject {
     return $this->identifier;
   }
 
+  public function getTable() {
+    return $this->table;
+  }
+
+  public function getFields(): array {
+    $fields = [];
+
+    foreach($this as $field => $value) {
+      if (in_array($field, $this->appends)) {
+        continue;
+      }
+
+      $fields[$field] = $value;
+    }
+
+    return $fields;
+  }
+
   public function getAppends() {
     return $this->appends;
   }

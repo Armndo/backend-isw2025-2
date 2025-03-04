@@ -3,32 +3,22 @@ include_once("Query.php");
 
 trait Queryable {
   public static function where(...$conditions) {
-    $instance = new static();
-
-    return (new Query(static::class, $instance->table, $instance->identifier))->where(...$conditions);
+    return (new Query(new static))->where(...$conditions);
   }
 
   public static function whereRaw(string $raw) {
-    $instance = new static();
-
-    return (new Query(static::class, $instance->table, $instance->identifier))->whereRaw($raw);
+    return (new Query(new static))->whereRaw($raw);
   }
   
   public static function orderBy($field, $direction = "ASC") {
-    $instance = new static();
-
-    return (new Query(static::class, $instance->table, $instance->identifier))->orderBy($field, $direction);
+    return (new Query(new static))->orderBy($field, $direction);
   }
 
   public static function find($id) {
-    $instance = new static();
-
-    return (new Query(static::class, $instance->table, $instance->identifier))->find($id);
+    return (new Query(new static))->find($id);
   }
 
   public static function get() {
-    $instance = new static();
-
-    return (new Query(static::class, $instance->table, $instance->identifier))->get();
+    return (new Query(new static))->get();
   }
 }

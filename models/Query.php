@@ -11,19 +11,13 @@ class Query {
   //   ">",
   //   "<",
   // ];
+  private $instance;
   private $wheres = [];
   private $orders = [];
-  private $fields = null;
   private $selects = [ "*" ];
-  private $table;
-  private $identifier;
-  private $classname;
 
-  public function __construct(string $classname, string $table, string $identifier, array | null $fields = null) {
-    $this->classname = $classname;
-    $this->table = $table;
-    $this->identifier = $identifier;
-    $this->fields = $fields;
+  public function __construct(Model $instance) {
+    $this->instance = $instance;
   }
 
   public function where(...$conditions): self {
@@ -48,50 +42,54 @@ class Query {
     return $this;
   }
 
-  private function resolve(): string {
-    if ($this->fields == null) {
+  private function resolve($exec = false): string {
+    $table = $this->instance->getTable();
+    $fields = $this->instance->getFields();
+
+    if (!$exec) {
       $selects = implode(", ", $this->selects);
       $where = Utils::wheres($this->wheres, true);
       $orderBy = Utils::orders($this->orders);
 
-      return "SELECT $selects FROM $this->table$where$orderBy";
+      return "SELECT $selects FROM $table$where$orderBy";
     }
 
-    $instance = new $this->classname;
+    $identifier = $this->instance->getIdentifier();
+    $appends = $this->instance->getAppends();
 
-    if (isset($this->fields[$this->identifier])) {
-      $values = Utils::values($this->fields, $instance->getAppends(), true, $this->identifier);
+    if (isset($fields[$identifier])) {
+      $values = Utils::values($fields, $appends, true, $identifier);
 
-      return "UPDATE $this->table SET $values WHERE $this->identifier = " . $this->fields[$this->identifier];  
+      return "UPDATE $table SET $values WHERE $identifier = " . $fields[$identifier];  
     }
 
-    $fields = Utils::fields($this->fields, $instance->getAppends(), $this->identifier);
-    $values = Utils::values($this->fields, $instance->getAppends());
+    $values = Utils::values($fields, $appends);
+    $fields = Utils::fields($fields, $appends, $identifier);
 
-    return "INSERT INTO $this->table ($fields) VALUES ($values) RETURNING *";
+    return "INSERT INTO $table ($fields) VALUES ($values) RETURNING *";
   }
 
   public function find(int | string $id): Model | null {
-    $this->wheres[] = Utils::where([$this->identifier, +$id]);
+    $this->wheres[] = Utils::where([$this->instance->getIdentifier(), +$id]);
     $result = $this->run($this->resolve());
 
     if (sizeof($result) < 1) {
       return null;
     }
 
-    return new $this->classname($result[0], true);
+    return $this->instance->fill($result[0], true);
   }
 
   public function get(): Collection {
     return new Collection(
       array_map(function ($fields) {
-        return new $this->classname($fields, true);
+        return new (get_class($this->instance))($fields, true);
       }, $this->run($this->resolve()))
     );
   }
 
   public function save(): Model {
-    return new $this->classname($this->run($this->resolve(), true)[0], true);
+    return $this->instance->fill($this->run($this->resolve(true), true)[0], true);
   }
 
   private function run($sql): array {
