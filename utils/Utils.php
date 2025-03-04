@@ -2,7 +2,7 @@
 include_once("Connection.php");
 
 class Utils {
-  public static function where($condition, $toString = false): mixed {
+  public static function where($condition, $toString = false): array | string {
     $field = null;
     $operator = null;
     $value = null;
@@ -27,7 +27,7 @@ class Utils {
     ];
   }
 
-  public static function wheres($conditions, $toString = false): mixed {
+  public static function wheres($conditions, $toString = false): array | string {
     if (sizeof($conditions) === 0) {
       return $toString ? "" : [];
     }
@@ -38,7 +38,18 @@ class Utils {
       $wheres[] = static::where($toString ? array_values($condition) : $condition, $toString);
     }
 
-    return $toString ? (" where " . implode(" and ", $wheres)) : $wheres;
+    return $toString ? (" WHERE " . implode(" AND ", $wheres)) : $wheres;
+  }
+
+  public static function orders($orders = []) {
+    if (sizeof($orders) === 0) {
+      return "";
+    }
+
+    return " ORDER BY " . implode(", ", array_map(function ($order) {
+      [$field, $direction] = $order;
+      return "$field $direction";
+    }, $orders)) ;
   }
 
   public static function runQuery($fields, $table, $where) {

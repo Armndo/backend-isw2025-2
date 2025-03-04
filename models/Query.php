@@ -12,6 +12,7 @@ class Query {
   //   "<",
   // ];
   private $wheres = [];
+  private $orders = [];
   private $fields = [ "*" ];
   private $table;
   private $identifier;
@@ -33,6 +34,12 @@ class Query {
     return $this;
   }
 
+  public function orderBy($field, $direction = "ASC"): self {
+    $this->orders[] = [$field, $direction];
+
+    return $this;
+  }
+
   // public function whereRaw(string $raw) {
   //   $this->wheres[] = $raw;
 
@@ -42,7 +49,8 @@ class Query {
   private function resolve(): string {
     $fields = implode(", ", $this->fields);
     $where = Utils::wheres($this->wheres, true);
-    $sql = "SELECT $fields FROM $this->table$where";
+    $orderBy = Utils::orders($this->orders);
+    $sql = "SELECT $fields FROM $this->table$where$orderBy";
 
     return $sql;
   }
