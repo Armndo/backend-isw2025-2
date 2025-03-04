@@ -40,11 +40,11 @@ class Query {
     return $this;
   }
 
-  // public function whereRaw(string $raw) {
-  //   $this->wheres[] = $raw;
+  public function whereRaw(string $raw) {
+    $this->wheres[] = $raw;
 
-  //   return $this;
-  // }
+    return $this;
+  }
 
   private function resolve(): string {
     $fields = implode(", ", $this->fields);

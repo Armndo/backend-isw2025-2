@@ -7,6 +7,10 @@ class Utils {
     $operator = null;
     $value = null;
 
+    if (gettype($condition) === "string") {
+      return $condition;
+    }
+
     if (sizeof($condition) === 2) {
       [$field, $value] = $condition;
       $operator = "=";
@@ -35,7 +39,11 @@ class Utils {
     $wheres = [];
 
     foreach($conditions as $condition) {
-      $wheres[] = static::where($toString ? array_values($condition) : $condition, $toString);
+      if (gettype($condition) === "string") {
+        $wheres[] = static::where($condition);
+      } else {
+        $wheres[] = static::where($toString ? array_values($condition) : $condition, $toString);
+      }
     }
 
     return $toString ? (" WHERE " . implode(" AND ", $wheres)) : $wheres;

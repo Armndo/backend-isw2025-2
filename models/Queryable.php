@@ -1,4 +1,6 @@
 <?php
+include_once("Query.php");
+
 trait Queryable {
   public static function where(...$conditions) {
     $instance = new static();
@@ -6,6 +8,14 @@ trait Queryable {
     $identifier = $instance->identifier ?? "id";
 
     return new Query(static::class, $table, $identifier)->where(...$conditions);
+  }
+
+  public static function whereRaw(string $raw) {
+    $instance = new static();
+    $table = $instance->table ?? strtolower($instance::class) . "s";
+    $identifier = $instance->identifier ?? "id";
+
+    return new Query(static::class, $table, $identifier)->whereRaw($raw);
   }
   
   public static function orderBy($field, $direction = "ASC") {
