@@ -1,37 +1,44 @@
 <?php
+include_once("Connection.php");
+
 class Utils {
-  public static function where($condition, $flag = true): string {
-    $where = $flag ? " where " : "";
+  public static function where($condition, $toString = false): mixed {
+    $field = null;
+    $operator = null;
+    $value = null;
 
     if (sizeof($condition) === 2) {
       [$field, $value] = $condition;
-
-      if (gettype($value) === "string") {
-        $value = "'$value'";
-      }
-
-      $where .= "$field = $value";
+      $operator = "=";
     } else {
       [$field, $operator, $value] = $condition;
-
-      if (gettype($value) === "string") {
-        $value = "'$value'";
-      }
-
-      $where .= "$field $operator $value";
     }
 
-    return $where;
+    if (gettype($value) === "string" && !$toString) {
+      $value = "'$value'";
+    } else if ($value === null) {
+      $value = "NULL";
+    }
+
+    return $toString ? "$field $operator $value" : [
+      "field" => $field,
+      "operator" => $operator,
+      "value" => $value,
+    ];
   }
 
-  public static function wheres($conditions): string {
+  public static function wheres($conditions, $toString = false): mixed {
+    if (sizeof($conditions) === 0) {
+      return $toString ? "" : [];
+    }
+
     $wheres = [];
 
     foreach($conditions as $condition) {
-      $wheres[] = static::where($condition, false);
+      $wheres[] = static::where($toString ? array_values($condition) : $condition, $toString);
     }
 
-    return " where " . implode(" and ", $wheres);;
+    return $toString ? (" where " . implode(" and ", $wheres)) : $wheres;
   }
 
   public static function runQuery($fields, $table, $where) {

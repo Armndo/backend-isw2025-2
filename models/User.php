@@ -5,6 +5,7 @@ class User extends Model {
   protected $fillable = [
     "name",
     "lastname",
+    "age",
   ];
 
   protected $hidden = [

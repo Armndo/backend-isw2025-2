@@ -2,6 +2,7 @@
 include_once("utils/Connection.php");
 include_once("utils/Utils.php");
 include_once("Collection.php");
+include_once("Query.php");
 
 class Model extends ArrayObject {
   protected $table;
@@ -10,7 +11,11 @@ class Model extends ArrayObject {
   protected $hidden = [];
   protected $appends = [];
 
-  public function __construct(array $fields = [], $ignoreFillable = false) {
+  public function __construct(array | null $fields = [], $ignoreFillable = false) {
+    if ($fields === null) {
+      return ;
+    }
+
     $this->fill($fields, $ignoreFillable);
   }
 
@@ -23,9 +28,17 @@ class Model extends ArrayObject {
       return $this[$name];
     }
 
-    if (in_array($name, $this->appends) && $function = $this->attribute($name)) {
+    if (in_array($name, $this->appends) && $function = $this->getFunction($name)) {
       return $this->{$function}();
     }
+  }
+
+  public static function where(...$conditions) {
+    $instance = new static();
+    $table = $instance->table ?? strtolower($instance::class) . "s";
+    $identifier = $instance->identifier ?? "id";
+
+    return new Query(static::class, $table, $identifier)->where(...$conditions);
   }
 
   public static function find($id) {
@@ -33,47 +46,18 @@ class Model extends ArrayObject {
     $table = $instance->table ?? strtolower($instance::class) . "s";
     $identifier = $instance->identifier ?? "id";
 
-    return $instance->fill(Utils::runQuery("*", $table, "$identifier = $id")[0], true);
+    return new Query(static::class, $table, $identifier)->find($id);
   }
 
-  public static function get(...$fields) {
+  public static function get() {
     $instance = new static();
     $table = $instance->table ?? strtolower($instance::class) . "s";
+    $identifier = $instance->identifier ?? "id";
 
-    if (sizeof($fields) === 1 && gettype($fields[0]) === "array") {
-      $fields = implode(", ", $fields[0]);
-    } else if(sizeof($fields) >= 1) {
-      $fields = implode(", ", $fields);
-    } else {
-      $fields = "*";
-    }
-
-    return new Collection(
-      array_map(function ($fields) {
-        return new static($fields, true);
-      }, Utils::runQuery($fields, $table, ""))
-    );
+    return new Query(static::class, $table, $identifier)->get();
   }
 
-  public static function search(...$conditions) {
-    $instance = new static();
-    $table = $instance->table ?? strtolower($instance::class) . "s";
-    $where = "";
-
-    if (in_array(sizeof($conditions), [2, 3]) && array_reduce($conditions, function ($a, $b) { return $a && gettype($b) !== "array"; }, true)) {
-      $where = Utils::where($conditions);
-    } else if(sizeof($conditions) === 1) {
-      $where = Utils::wheres($conditions[0]);
-    }
-
-    return new Collection(
-      array_map(function ($fields) {
-        return new static($fields, true);
-      }, Utils::runQuery("*", $table, $where))
-    );
-  }
-
-  private function attribute($name) {
+  private function getFunction($name) {
     if (method_exists($this, $name)) {
       return $name;
     }
@@ -95,7 +79,7 @@ class Model extends ArrayObject {
     }
 
     foreach($this->appends as $append) {
-      if ($name = $this->attribute($append)) {
+      if ($name = $this->getFunction($append)) {
         $this->{$append} = $this->{$name}();
       }
     }
@@ -103,7 +87,7 @@ class Model extends ArrayObject {
     return $this;
   }
 
-  public function arraylize() {
+  public function toAssoc() {
     $arr = [];
 
     foreach($this as $field => $value) {
@@ -113,6 +97,10 @@ class Model extends ArrayObject {
     }
 
     return $arr;
+  }
+
+  public function toJson() {
+    return json_encode($this->toAssoc(), JSON_PRETTY_PRINT);
   }
 
   public function __toString() {

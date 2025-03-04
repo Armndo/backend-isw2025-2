@@ -38,7 +38,7 @@ class Collection implements ArrayAccess, IteratorAggregate {
     $arr = [];
 
     foreach($this->items as $item) {
-      $arr[] = $item->arraylize();
+      $arr[] = $item->toAssoc();
     }
 
     return $arr;
