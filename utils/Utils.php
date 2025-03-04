@@ -7,7 +7,7 @@ class Utils {
     $operator = null;
     $value = null;
 
-    if (gettype($condition) === "string") {
+    if (is_string($condition)) {
       return $condition;
     }
 
@@ -18,7 +18,7 @@ class Utils {
       [$field, $operator, $value] = $condition;
     }
 
-    if (gettype($value) === "string" && !$toString) {
+    if (is_string($value) && !$toString) {
       $value = "'$value'";
     } else if ($value === null) {
       $value = "NULL";
@@ -39,7 +39,7 @@ class Utils {
     $wheres = [];
 
     foreach($conditions as $condition) {
-      if (gettype($condition) === "string") {
+      if (is_string($condition)) {
         $wheres[] = static::where($condition);
       } else {
         $wheres[] = static::where($toString ? array_values($condition) : $condition, $toString);
@@ -47,6 +47,36 @@ class Utils {
     }
 
     return $toString ? (" WHERE " . implode(" AND ", $wheres)) : $wheres;
+  }
+
+  public static function fields($fields, $appends, $identifier): string {
+    $aux = [];
+
+    foreach(array_keys($fields) as $field) {
+      if ($field === $identifier || in_array($field, $appends)) {
+        continue;
+      }
+
+      $aux[] = $field;
+    }
+
+    return implode(", ", $aux);
+  }
+
+  public static function values($fields, $appends, $update = false, $identifier = null): string {
+    $aux = [];
+
+    foreach($fields as $field => $value) {
+      if (is_null($value) || $field === $identifier || in_array($field, $appends)) {
+        continue;
+      } else if (is_string($value)) {
+        $value = "'$value'";
+      }
+
+      $aux[] = !$update ? $value : "$field = $value";
+    }
+
+    return implode(", ", $aux);
   }
 
   public static function orders($orders = []) {
