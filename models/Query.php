@@ -13,15 +13,17 @@ class Query {
   // ];
   private $wheres = [];
   private $orders = [];
-  private $fields = [ "*" ];
+  private $fields = null;
+  private $selects = [ "*" ];
   private $table;
   private $identifier;
   private $classname;
 
-  public function __construct($classname, $table, $identifier) {
+  public function __construct(string $classname, string $table, string $identifier, array | null $fields = null) {
     $this->classname = $classname;
     $this->table = $table;
     $this->identifier = $identifier;
+    $this->fields = $fields;
   }
 
   public function where(...$conditions): self {
@@ -47,12 +49,26 @@ class Query {
   }
 
   private function resolve(): string {
-    $fields = implode(", ", $this->fields);
-    $where = Utils::wheres($this->wheres, true);
-    $orderBy = Utils::orders($this->orders);
-    $sql = "SELECT $fields FROM $this->table$where$orderBy";
+    if ($this->fields == null) {
+      $selects = implode(", ", $this->selects);
+      $where = Utils::wheres($this->wheres, true);
+      $orderBy = Utils::orders($this->orders);
 
-    return $sql;
+      return "SELECT $selects FROM $this->table$where$orderBy";
+    }
+
+    $instance = new $this->classname;
+
+    if (isset($this->fields[$this->identifier])) {
+      $values = Utils::values($this->fields, $instance->getAppends(), true, $this->identifier);
+
+      return "UPDATE $this->table SET $values WHERE $this->identifier = " . $this->fields[$this->identifier];  
+    }
+
+    $fields = Utils::fields($this->fields, $instance->getAppends(), $this->identifier);
+    $values = Utils::values($this->fields, $instance->getAppends());
+
+    return "INSERT INTO $this->table ($fields) VALUES ($values) RETURNING *";
   }
 
   public function find(int | string $id): Model | null {
@@ -74,10 +90,15 @@ class Query {
     );
   }
 
+  public function save(): Model {
+    return new $this->classname($this->run($this->resolve(), true)[0], true);
+  }
+
   private function run($sql): array {
     try {
       $conn = (new Connection())->getConnection();
-      $query = $conn->query($sql);
+      $query = $conn->prepare($sql);
+      $query->execute();
 
       return $query->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
