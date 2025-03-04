@@ -1,12 +1,10 @@
 <?php
-include_once("utils/Connection.php");
-include_once("utils/Utils.php");
-include_once("Collection.php");
-include_once("Query.php");
 include_once("Queryable.php");
+include_once("Storable.php");
 
 class Model extends ArrayObject {
   use Queryable;
+  use Storable;
 
   protected $table;
   protected $identifier;
@@ -17,6 +15,14 @@ class Model extends ArrayObject {
   public function __construct(array | null $fields = [], $ignoreFillable = false) {
     if ($fields === null) {
       return ;
+    }
+
+    if (!isset($this->table)) {
+      $this->table = strtolower($this::class) . "s";
+    }
+
+    if (!isset($this->identifier)) {
+      $this->identifier = "id";
     }
 
     $this->fill($fields, $ignoreFillable);
@@ -34,6 +40,14 @@ class Model extends ArrayObject {
     if (in_array($name, $this->appends) && $function = $this->getFunction($name)) {
       return $this->{$function}();
     }
+  }
+
+  public function getIdentifier() {
+    return $this->identifier;
+  }
+
+  public function getAppends() {
+    return $this->appends;
   }
 
   private function getFunction($name) {
