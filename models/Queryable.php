@@ -1,5 +1,5 @@
 <?php
-include_once("Query.php");
+namespace Models;
 
 trait Queryable {
   public static function where(...$conditions) {

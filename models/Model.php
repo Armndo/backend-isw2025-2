@@ -1,6 +1,6 @@
 <?php
-include_once("Queryable.php");
-include_once("Storable.php");
+namespace Models;
+use ArrayObject;
 
 class Model extends ArrayObject {
   use Queryable;

@@ -1,5 +1,5 @@
 <?php
-include_once("Model.php");
+namespace Models;
 
 class User extends Model {
   protected $fillable = [

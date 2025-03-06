@@ -1,4 +1,6 @@
 <?php
+namespace Models;
+
 class Collection implements ArrayAccess, IteratorAggregate {
   private $items = [];
 

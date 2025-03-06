@@ -1,5 +1,5 @@
 <?php
-include_once("Query.php");
+namespace Models;
 
 trait Storable {
   public function save() {
