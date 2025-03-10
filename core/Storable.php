@@ -1,5 +1,5 @@
 <?php
-namespace Models;
+namespace Core;
 
 trait Storable {
   public function save() {

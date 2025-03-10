@@ -1,5 +1,10 @@
 <?php
-namespace Models;
+namespace Core;
+
+use ArrayAccess;
+use IteratorAggregate;
+use Traversable;
+use ArrayIterator;
 
 class Collection implements ArrayAccess, IteratorAggregate {
   private $items = [];

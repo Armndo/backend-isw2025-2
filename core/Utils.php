@@ -1,5 +1,8 @@
 <?php
-include_once("Connection.php");
+namespace Core;
+
+use PDO;
+use PDOException;
 
 class Utils {
   public static function where($condition, $toString = false): array | string {

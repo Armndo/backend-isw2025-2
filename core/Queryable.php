@@ -1,5 +1,5 @@
 <?php
-namespace Models;
+namespace Core;
 
 trait Queryable {
   public static function where(...$conditions) {

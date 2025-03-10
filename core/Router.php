@@ -1,6 +1,5 @@
 <?php
-
-namespace App;
+namespace Core;
 
 class Router {
   private static array $routes = [];

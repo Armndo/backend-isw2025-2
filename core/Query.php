@@ -1,7 +1,8 @@
 <?php
-include_once("models/Model.php");
-include_once("models/Collection.php");
-include_once("utils/Utils.php");
+namespace Core;
+
+use PDO;
+use PDOException;
 
 class Query {
   // public const array operators = [
