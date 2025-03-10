@@ -1,5 +1,7 @@
 <?php
-include_once("Model.php");
+namespace Models;
+
+use Core\Model;
 
 class User extends Model {
   protected $fillable = [

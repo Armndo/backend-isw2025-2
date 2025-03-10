@@ -1,7 +1,8 @@
 <?php
-include_once("models/Model.php");
-include_once("models/Collection.php");
-include_once("utils/Utils.php");
+namespace Core;
+
+use PDO;
+use PDOException;
 
 class Query {
   // public const array operators = [
@@ -36,7 +37,7 @@ class Query {
     return $this;
   }
 
-  public function whereRaw(string $raw) {
+  public function whereRaw(string $raw): self {
     $this->wheres[] = $raw;
 
     return $this;
@@ -59,8 +60,9 @@ class Query {
 
     if (isset($fields[$identifier])) {
       $values = Utils::values($fields, $appends, true, $identifier);
+      $id = $fields[$identifier];
 
-      return "UPDATE $table SET $values WHERE $identifier = " . $fields[$identifier];  
+      return "UPDATE $table SET $values WHERE $identifier = $id RETURNING *";  
     }
 
     $values = Utils::values($fields, $appends);

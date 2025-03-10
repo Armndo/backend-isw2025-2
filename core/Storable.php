@@ -1,5 +1,5 @@
 <?php
-include_once("Query.php");
+namespace Core;
 
 trait Storable {
   public function save() {

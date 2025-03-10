@@ -1,4 +1,9 @@
 <?php
+namespace Core;
+
+use PDO;
+use PDOException;
+
 class Connection {
 	private $host;
 	private $port;

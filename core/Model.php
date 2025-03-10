@@ -1,6 +1,7 @@
 <?php
-include_once("Queryable.php");
-include_once("Storable.php");
+namespace Core;
+
+use ArrayObject;
 
 class Model extends ArrayObject {
   use Queryable;
@@ -18,7 +19,8 @@ class Model extends ArrayObject {
     }
 
     if (!isset($this->table)) {
-      $this->table = strtolower($this::class) . "s";
+      $class = explode("\\", $this::class);
+      $this->table = strtolower(end($class)) . "s";
     }
 
     if (!isset($this->identifier)) {
