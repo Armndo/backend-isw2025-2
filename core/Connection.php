@@ -8,8 +8,8 @@ class Connection {
 	private $host;
 	private $port;
 	private $db;
-	private $username;
 	private $dsn;
+	private $username;
 	private $password;
 	private $connection;
 
@@ -17,7 +17,7 @@ class Connection {
 		$this->host = getenv("DB_HOST");
 		$this->port = getenv("DB_PORT");
 		$this->db = getenv("DB_NAME");
-		$this->dsn = "pgsql:host=$this->host;port=$this->port;dbname=$this->db";
+		$this->dsn = getenv("DB_DSN") ? getenv("DB_DSN") : "pgsql:host=$this->host;port=$this->port;dbname=$this->db";
 		$this->username = getenv("DB_USERNAME");
 		$this->password = getenv("DB_PASSWORD");
 
