@@ -16,10 +16,14 @@ class User extends Model {
   ];
 
   protected $appends = [
-    "full_name"
+    "full_name",
   ];
 
   public function getFullnameAttribute() {
     return $this->name . ($this->lastname ? " $this->lastname" : "");
+  }
+
+  public function projects() {
+    return Project::where("user_id", $this->id)->get();
   }
 }

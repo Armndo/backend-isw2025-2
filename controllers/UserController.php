@@ -5,10 +5,10 @@ use Models\User;
 
 class UserController {
   public function index() {
-    return User::get();
+    return User::get()->toJson();
   }
 
   public function view($id) {
-    return User::find($id);
+    return User::find($id)->toJson();
   }
 }
