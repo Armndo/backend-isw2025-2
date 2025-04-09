@@ -48,11 +48,11 @@ class Query {
     $fields = $this->instance->getFields();
 
     if (!$exec) {
-      $selects = implode(", ", $this->selects);
+      $selects = Utils::selects($this->selects);
       $where = Utils::wheres($this->wheres, true);
       $orderBy = Utils::orders($this->orders);
 
-      return "SELECT $selects FROM $table$where$orderBy";
+      return "SELECT $selects FROM \"$table\"$where$orderBy";
     }
 
     $identifier = $this->instance->getIdentifier();
@@ -62,13 +62,13 @@ class Query {
       $values = Utils::values($fields, $appends, true, $identifier);
       $id = $fields[$identifier];
 
-      return "UPDATE $table SET $values WHERE $identifier = $id RETURNING *";  
+      return "UPDATE \"$table\" SET $values WHERE $identifier = $id RETURNING *";  
     }
 
     $values = Utils::values($fields, $appends);
     $fields = Utils::fields($fields, $appends, $identifier);
 
-    return "INSERT INTO $table ($fields) VALUES ($values) RETURNING *";
+    return "INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *";
   }
 
   public function find(int | string $id): Model | null {
@@ -88,6 +88,10 @@ class Query {
         return new (get_class($this->instance))($fields, true);
       }, $this->run($this->resolve()))
     );
+  }
+
+  public function first(): Model {
+    return new (get_class($this->instance))($this->run($this->resolve())[0], true);
   }
 
   public function save(): Model {

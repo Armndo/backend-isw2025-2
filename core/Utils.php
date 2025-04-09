@@ -27,11 +27,21 @@ class Utils {
       $value = "NULL";
     }
 
-    return $toString ? "$field $operator $value" : [
+    return $toString ? "\"$field\" $operator $value" : [
       "field" => $field,
       "operator" => $operator,
       "value" => $value,
     ];
+  }
+
+  public static function selects($fields) {
+    $selects = [];
+
+    foreach ($fields as $field) {
+      $selects[] = $field !== "*" ? "\"$field\"" : $field;
+    }
+
+    return implode(", ", $selects);
   }
 
   public static function wheres($conditions, $toString = false): array | string {
@@ -60,7 +70,7 @@ class Utils {
         continue;
       }
 
-      $aux[] = $field;
+      $aux[] = "\"$field\"";
     }
 
     return implode(", ", $aux);
@@ -76,7 +86,7 @@ class Utils {
         $value = "'$value'";
       }
 
-      $aux[] = !$update ? $value : "$field = $value";
+      $aux[] = !$update ? $value : "\"$field\" = $value";
     }
 
     return implode(", ", $aux);
@@ -89,21 +99,7 @@ class Utils {
 
     return " ORDER BY " . implode(", ", array_map(function ($order) {
       [$field, $direction] = $order;
-      return "$field $direction";
-    }, $orders)) ;
-  }
-
-  public static function runQuery($fields, $table, $where) {
-    try {
-      $conn = (new Connection())->getConnection();
-      $sql = "SELECT $fields FROM $table$where";
-      $query = $conn->query($sql);
-
-      return $query->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-      die("Error: " . $e->getMessage());
-    } finally {
-      $conn = null;
-    }
+      return "\"$field\" $direction";
+    }, $orders));
   }
 }
