@@ -6,6 +6,7 @@ use ArrayObject;
 class Model extends ArrayObject {
   use Queryable;
   use Storable;
+  use Relatable;
 
   protected $table;
   protected $identifier;
