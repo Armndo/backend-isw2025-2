@@ -27,7 +27,9 @@ class Utils {
       $value = "NULL";
     }
 
-    return $toString ? "\"$field\" $operator $value" : [
+    return $toString ? implode(".", array_map(function($item) {
+        return "\"$item\"";
+      }, explode(".", $field))) . " $operator $value" : [
       "field" => $field,
       "operator" => $operator,
       "value" => $value,
@@ -38,7 +40,9 @@ class Utils {
     $selects = [];
 
     foreach ($fields as $field) {
-      $selects[] = $field !== "*" ? "\"$field\"" : $field;
+      $selects[] = $field !== "*" ? implode(".", array_map(function($item) {
+        return $item === "*" ? $item : "\"$item\"";
+      }, explode(".", $field))) : $field;
     }
 
     return implode(", ", $selects);

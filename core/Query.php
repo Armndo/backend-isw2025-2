@@ -5,20 +5,25 @@ use PDO;
 use PDOException;
 
 class Query {
-  // public const array operators = [
-  //   "=",
-  //   ">=",
-  //   "<=",
-  //   ">",
-  //   "<",
-  // ];
   private $instance;
   private $wheres = [];
+  private $joins = [];
   private $orders = [];
   private $selects = [ "*" ];
+  private $limit = null;
 
   public function __construct(Model $instance) {
     $this->instance = $instance;
+  }
+
+  public function select(...$selects): self {
+    if (sizeof($selects) === 1 && is_array($selects[0])) {
+      $selects = $selects[0];
+    }
+
+    $this->selects = $selects;
+
+    return $this;
   }
 
   public function where(...$conditions): self {
@@ -27,6 +32,20 @@ class Query {
     } else if(sizeof($conditions) === 1) {
       $this->wheres = [...$this->wheres, ...Utils::wheres($conditions[0])];
     }
+
+    return $this;
+  }
+
+  public function join(string $table, string $first, string $second): self {
+    $this->joins[] = (
+      "\"$table\" on " .
+      implode(".", array_map(function($item) {
+        return "\"$item\"";
+      }, explode(".", $first))) . " = " .
+      implode(".", array_map(function($item) {
+        return "\"$item\"";
+      }, explode(".", $second)))
+    );
 
     return $this;
   }
@@ -51,8 +70,11 @@ class Query {
       $selects = Utils::selects($this->selects);
       $where = Utils::wheres($this->wheres, true);
       $orderBy = Utils::orders($this->orders);
+      $limit = $this->limit === null ? "" : " LIMIT $this->limit";
+      $joins = sizeof($this->joins) === 0 ? "" : " JOIN " . implode(" JOIN ", $this->joins);
 
-      return "SELECT $selects FROM \"$table\"$where$orderBy";
+      print_r("SELECT $selects FROM \"$table\"$joins$where$orderBy$limit\n");
+      return "SELECT $selects FROM \"$table\"$joins$where$orderBy$limit";
     }
 
     $identifier = $this->instance->getIdentifier();
@@ -91,6 +113,8 @@ class Query {
   }
 
   public function first(): Model {
+    $this->limit = 1;
+
     return new (get_class($this->instance))($this->run($this->resolve())[0], true);
   }
 
