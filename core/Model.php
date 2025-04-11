@@ -91,7 +91,11 @@ class Model extends ArrayObject {
     return false;
   }
 
-  public function fill($fields = [], $ignoreFillable = false): self {
+  public function fill($fields = [], bool $ignoreFillable = false, bool $stored = false): self {
+    if (!$this->stored) {
+      $this->stored = $stored;
+    }
+
     foreach($fields as $field => $value) {
       if ($ignoreFillable || in_array($field, $this->fillable)) {
         $this->{$field} = $value;
