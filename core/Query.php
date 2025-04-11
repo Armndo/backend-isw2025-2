@@ -88,14 +88,14 @@ class Query {
         $id = "'$id'";
       }
 
-      print_r("UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *\n");
+      // print_r("UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *\n");
       return "UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *";
     }
 
     $values = Utils::values($fields, $appends);
     $fields = Utils::fields($fields, $appends, $identifier);
 
-    print_r("INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *\n");
+    // print_r("INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *\n");
     return "INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *";
   }
 
