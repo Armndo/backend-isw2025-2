@@ -13,8 +13,9 @@ class Model extends ArrayObject {
   protected $fillable = [];
   protected $hidden = [];
   protected $appends = [];
+  protected $stored = false;
 
-  public function __construct(array | null $fields = [], $ignoreFillable = false) {
+  public function __construct(array | null $fields = [], bool $ignoreFillable = false, bool $stored = false) {
     if ($fields === null) {
       return ;
     }
@@ -29,6 +30,7 @@ class Model extends ArrayObject {
     }
 
     $this->fill($fields, $ignoreFillable);
+    $this->stored = $stored;
   }
 
   public function __set($name, $val) {
@@ -71,6 +73,10 @@ class Model extends ArrayObject {
     return $this->appends;
   }
 
+  public function getStored(): bool {
+    return $this->stored;
+  }
+
   private function getFunction($name) {
     if (method_exists($this, $name)) {
       return $name;
@@ -85,7 +91,7 @@ class Model extends ArrayObject {
     return false;
   }
 
-  public function fill($fields = [], $ignoreFillable = false) {
+  public function fill($fields = [], $ignoreFillable = false): self {
     foreach($fields as $field => $value) {
       if ($ignoreFillable || in_array($field, $this->fillable)) {
         $this->{$field} = $value;

@@ -70,7 +70,7 @@ class Utils {
     $aux = [];
 
     foreach(array_keys($fields) as $field) {
-      if ($field === $identifier || in_array($field, $appends)) {
+      if (in_array($field, $appends)) {
         continue;
       }
 
@@ -84,7 +84,7 @@ class Utils {
     $aux = [];
 
     foreach($fields as $field => $value) {
-      if (is_null($value) || $field === $identifier || in_array($field, $appends)) {
+      if (is_null($value) || ($field === $identifier && !is_string($field)) || in_array($field, $appends)) {
         continue;
       } else if (is_string($value)) {
         $value = "'$value'";

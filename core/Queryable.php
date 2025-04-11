@@ -22,7 +22,7 @@ trait Queryable {
     return (new Query(new static))->orderBy($field, $direction);
   }
 
-  public static function find($id): static {
+  public static function find(string | int $id): static {
     return (new Query(new static))->find($id);
   }
 

@@ -80,34 +80,40 @@ class Query {
     $identifier = $this->instance->getIdentifier();
     $appends = $this->instance->getAppends();
 
-    if (isset($fields[$identifier])) {
+    if (isset($fields[$identifier]) && $this->instance->getStored()) {
       $values = Utils::values($fields, $appends, true, $identifier);
       $id = $fields[$identifier];
 
-      return "UPDATE \"$table\" SET $values WHERE $identifier = $id RETURNING *";  
+      if (is_string($id)) {
+        $id = "'$id'";
+      }
+
+      print_r("UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *\n");
+      return "UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *";
     }
 
     $values = Utils::values($fields, $appends);
     $fields = Utils::fields($fields, $appends, $identifier);
 
+    print_r("INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *\n");
     return "INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *";
   }
 
   public function find(int | string $id): Model | null {
-    $this->wheres[] = Utils::where([$this->instance->getIdentifier(), +$id]);
+    $this->wheres[] = Utils::where([$this->instance->getIdentifier(), $id]);
     $result = $this->run($this->resolve());
 
     if (sizeof($result) < 1) {
       return null;
     }
 
-    return $this->instance->fill($result[0], true);
+    return $this->instance->fill($result[0], true, true);
   }
 
   public function get(): Collection {
     return new Collection(
       array_map(function ($fields) {
-        return new (get_class($this->instance))($fields, true);
+        return new (get_class($this->instance))($fields, true, true);
       }, $this->run($this->resolve()))
     );
   }
@@ -115,11 +121,11 @@ class Query {
   public function first(): Model {
     $this->limit = 1;
 
-    return new (get_class($this->instance))($this->run($this->resolve())[0], true);
+    return new (get_class($this->instance))($this->run($this->resolve())[0], true, true);
   }
 
   public function save(): Model {
-    return $this->instance->fill($this->run($this->resolve(true), true)[0], true);
+    return $this->instance->fill($this->run($this->resolve(true), true)[0], true, true);
   }
 
   private function run($sql): array {
