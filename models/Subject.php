@@ -4,18 +4,15 @@ namespace Models;
 use Core\Collection;
 use Core\Model;
 
-class Project extends Model {
+class Subject extends Model {
   protected $fillable = [
     "name",
-    "description",
-    "group_id",
-    "subject_id",
+    "major_id",
   ];
 
   protected $hidden = [
     "id",
-    "group_id",
-    "subject_id",
+    "major_id",
   ];
 
   // public function users(): Collection {

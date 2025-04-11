@@ -1,6 +1,7 @@
 <?php
 namespace Models;
 
+use Core\Collection;
 use Core\Model;
 
 class User extends Model {
@@ -23,7 +24,7 @@ class User extends Model {
     return $this->name . ($this->lastname ? " $this->lastname" : "");
   }
 
-  public function projects() {
-    return Project::where("user_id", $this->id)->get();
+  public function projects(): Collection {
+    return $this->belongs(Project::class, true);
   }
 }
