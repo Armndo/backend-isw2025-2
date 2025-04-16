@@ -110,18 +110,18 @@ class Query {
     return $this->instance->fill($result[0], true, true);
   }
 
-  public function get(): Collection {
+  public function get(string | null $class = null): Collection {
     return new Collection(
-      array_map(function ($fields) {
-        return new (get_class($this->instance))($fields, true, true);
+      array_map(function ($fields) use ($class) {
+        return new ($class ? $class : get_class($this->instance))($fields, true, true);
       }, $this->run($this->resolve()))
     );
   }
 
-  public function first(): Model {
+  public function first(string | null $class = null): Model {
     $this->limit = 1;
 
-    return new (get_class($this->instance))($this->run($this->resolve())[0], true, true);
+    return new ($class ? $class : get_class($this->instance))($this->run($this->resolve())[0], true, true);
   }
 
   public function save(): Model {

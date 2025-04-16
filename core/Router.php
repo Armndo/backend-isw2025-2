@@ -40,7 +40,7 @@ class Router {
           return $controller->$method(...$params);
         }
 
-        return json_encode($callback(...$params));
+        return $callback(...$params);
       }
     }
 
