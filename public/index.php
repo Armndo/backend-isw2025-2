@@ -6,6 +6,8 @@ foreach ($env as $key => $value) {
   putenv("$key=$value");
 }
 
+header("Access-Control-Allow-Origin: *");
+
 use Controllers\GroupController;
 use Controllers\MajorController;
 use Controllers\ProjectController;
