@@ -1,8 +1,20 @@
 CREATE TABLE users (
   id serial NOT NULL,
   name text NOT NULL,
-  lastname text,
-  age smallint,
+  paternal_lastname text NOT NULL,
+  maternal_lastname text,
+  type text,
+  email text NOT NULL,
+  password text NOT NULL,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE sessions (
+  id serial NOT NULL,
+  user_id int NOT NULL,
+  token text NOT NULL,
+  expired boolean NOT NULL DEFAULT FALSE,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE,
   PRIMARY KEY(id)
 );
 
@@ -20,21 +32,17 @@ CREATE TABLE shifts (
 
 CREATE TABLE students (
   id varchar(10) NOT NULL,
-  name text NOT NULL,
-  paternal_lastname text NOT NULL,
-  maternal_lastname text,
-  email text NOT NULL,
+  user_id int NOT NULL,
   major_id int NOT NULL,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE,
   FOREIGN KEY(major_id) REFERENCES majors(id) ON UPDATE CASCADE,
   PRIMARY KEY(id)
 );
 
 CREATE TABLE teachers (
   id varchar(10) NOT NULL,
-  name text NOT NULL,
-  paternal_lastname text NOT NULL,
-  maternal_lastname text,
-  email text NOT NULL,
+  user_id int NOT NULL,
+  FOREIGN KEY(user_id) REFERENCES users(id) ON UPDATE CASCADE,
   PRIMARY KEY(id)
 );
 
@@ -93,4 +101,13 @@ CREATE TABLE project_student (
   FOREIGN KEY(student_id) REFERENCES students(id) ON UPDATE CASCADE,
   FOREIGN KEY(project_id) REFERENCES projects(id) ON UPDATE CASCADE,
   PRIMARY KEY(student_id, project_id)
+);
+
+CREATE TABLE signs (
+  id serial NOT NULL,
+  sign text NOT NULL,
+  printed boolean NOT NULL DEFAULT FALSE,
+  project_id integer NOT NULL UNIQUE,
+  FOREIGN KEY(project_id) REFERENCES projects(id) ON UPDATE CASCADE,
+  PRIMARY KEY(id)
 );

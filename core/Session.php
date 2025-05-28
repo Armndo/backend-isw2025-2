@@ -22,7 +22,7 @@ class Session extends Model {
     return Session::where("token", $token)->where("expired", false)->first();
   }
 
-  public function user() {
+  public function user(): ?User {
     return $this->belongs(User::class);
   }
 }

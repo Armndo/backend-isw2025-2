@@ -101,6 +101,7 @@ class Query {
 
   public function find(int | string $id): Model | null {
     $this->wheres[] = Utils::where([$this->instance->getIdentifier(), $id]);
+    $this->limit = 1;
     $result = $this->run($this->resolve());
 
     if (sizeof($result) < 1) {

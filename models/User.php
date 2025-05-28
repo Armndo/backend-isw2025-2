@@ -18,6 +18,10 @@ class User extends Model {
     return static::where("email", $credentials["email"])->where("password", $credentials["password"])->first();
   }
 
+  public function isAdmin(): bool {
+    return $this->type === "admin";
+  }
+
   public function sessions() {
     return $this->has(Session::class, true);
   }
