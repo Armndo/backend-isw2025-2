@@ -25,6 +25,8 @@ class Utils {
       $value = "'$value'";
     } else if ($value === null) {
       $value = "NULL";
+    } else if (is_bool($value)) {
+      $value = $value ? "TRUE" : "FALSE";
     }
 
     return $toString ? implode(".", array_map(function($item) {
@@ -88,6 +90,8 @@ class Utils {
         continue;
       } else if (is_string($value)) {
         $value = "'$value'";
+      } else if (is_bool($value)) {
+        $value = $value ? "TRUE" : "FALSE";
       }
 
       $aux[] = !$update ? $value : "\"$field\" = $value";
@@ -105,5 +109,9 @@ class Utils {
       [$field, $direction] = $order;
       return "\"$field\" $direction";
     }, $orders));
+  }
+
+  public static function token() {
+    return bin2hex(random_bytes(32));
   }
 }

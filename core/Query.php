@@ -118,10 +118,12 @@ class Query {
     );
   }
 
-  public function first(string | null $class = null): Model {
+  public function first(string | null $class = null): ?Model {
     $this->limit = 1;
 
-    return new ($class ? $class : get_class($this->instance))($this->run($this->resolve())[0], true, true);
+    $object = $this->run($this->resolve());
+
+    return sizeof($object) > 0 ? new ($class ? $class : get_class($this->instance))($object[0], true, true) : null;
   }
 
   public function save(): Model {

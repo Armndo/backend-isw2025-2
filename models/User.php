@@ -2,28 +2,22 @@
 namespace Models;
 
 use Core\Model;
+use Core\Session;
 
 class User extends Model {
   protected $fillable = [
     "name",
-    "lastname",
-    "age",
+    "paternal_lastname",
+    "maternal_lastname",
+    "email",
+    "password",
   ];
 
-  protected $hidden = [
-    "name",
-    "lastname",
-  ];
-
-  protected $appends = [
-    "full_name",
-  ];
-
-  public function getFullnameAttribute() {
-    return $this->name . ($this->lastname ? " $this->lastname" : "");
+  public static function check($credentials) {
+    return static::where("email", $credentials["email"])->where("password", $credentials["password"])->first();
   }
 
-  public function projects() {
-    return Project::where("user_id", $this->id)->get();
+  public function sessions() {
+    return $this->has(Session::class, true);
   }
 }

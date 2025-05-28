@@ -25,6 +25,13 @@ class Router {
     $path = explode('?', $path)[0];
 
     header('Content-Type: application/json; charset=utf-8');
+    header("Access-Control-Allow-Origin: *");
+    header("Access-Control-Allow-Methods: *");
+    header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
+
+    if ($method === 'OPTIONS') {    
+      return 0;    
+    }
 
     foreach (static::$routes[$method] ?? [] as $pattern => $callback) {
       if (preg_match($pattern, $path, $matches)) {

@@ -42,6 +42,7 @@ class Request extends ArrayObject {
         $this->attributes = $this->jsonAttributes();
         break;
 
+      case "application/x-www-form-urlencoded":
       case null:
         break;
 
@@ -62,6 +63,10 @@ class Request extends ArrayObject {
     }
 
     return $json;
+  }
+
+  public function headers() {
+    return $this->headers;
   }
 
   public function files() {
