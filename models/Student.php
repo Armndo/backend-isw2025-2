@@ -1,39 +1,25 @@
 <?php
 namespace Models;
 
+use Core\Collection;
 use Core\Model;
 
 class Student extends Model {
   protected $fillable = [
-    "id",
-    "name",
-    "paternal_lastname",
-    "maternal_lastname",
-    "email",
+    "user_id",
     "major_id",
   ];
 
   protected $hidden = [
-    "id",
-    "name",
-    "paternal_lastname",
-    "maternal_lastname",
+    "user_id",
     "major_id",
   ];
 
-  protected $appends = [
-    "full_name",
-  ];
-
-
-  public function getFullnameAttribute() {
-    return $this->name . " $this->paternal_lastname" .
-    ($this->maternal_lastname ? " $this->maternal_lastname" : "");
+  public function user(): ?User {
+    return $this->belongs(User::class);
   }
 
-  public function projects() {
+  public function projects(): Collection {
     return $this->belongs(Project::class, true);
-    return Project::where("user_id", $this->id)->get();
   }
-
 }

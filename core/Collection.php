@@ -37,11 +37,21 @@ class Collection implements ArrayAccess, IteratorAggregate {
     return new ArrayIterator($this->items);
   }
 
-  public function toJson() {
+  public function map(?callable $callback = null): array {
+    $res = [];
+
+    foreach ($this->items as $item) {
+      $res[] = $callback ? $callback($item) : $item;
+    }
+
+    return $res;
+  }
+
+  public function toJson(): string {
     return json_encode($this->toAssoc(), JSON_PRETTY_PRINT);
   }
 
-  public function toAssoc() {
+  public function toAssoc(): array {
     $arr = [];
 
     foreach($this->items as $item) {
@@ -51,7 +61,7 @@ class Collection implements ArrayAccess, IteratorAggregate {
     return $arr;
   }
 
-  public function toArray() {
+  public function toArray(): array {
     $arr = [];
 
     foreach($this->items as $item) {

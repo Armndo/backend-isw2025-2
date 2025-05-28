@@ -73,7 +73,10 @@ class Query {
       $limit = $this->limit === null ? "" : " LIMIT $this->limit";
       $joins = sizeof($this->joins) === 0 ? "" : " JOIN " . implode(" JOIN ", $this->joins);
 
-      // print_r("SELECT $selects FROM \"$table\"$joins$where$orderBy$limit\n");
+      if (getenv("DEBUG")) {
+        print_r("SELECT $selects FROM \"$table\"$joins$where$orderBy$limit\n");
+      }
+
       return "SELECT $selects FROM \"$table\"$joins$where$orderBy$limit";
     }
 
@@ -88,14 +91,20 @@ class Query {
         $id = "'$id'";
       }
 
-      // print_r("UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *\n");
+      if (getenv("DEBUG")) {
+        print_r("UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *\n");
+      }
+
       return "UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *";
     }
 
     $values = Utils::values($fields, $appends);
     $fields = Utils::fields($fields, $appends, $identifier);
 
-    // print_r("INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *\n");
+    if (getenv("DEBUG")) {
+      print_r("INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *\n");
+    }
+
     return "INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *";
   }
 

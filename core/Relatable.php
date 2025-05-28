@@ -30,7 +30,8 @@ trait Relatable {
     ->select($instance->table . ".*")
     ->join($pivot, "$pivot.$fk", "$instance->table." . $instance->getIdentifier())
     ->join($this->table, "$this->table.$this->identifier", "$pivot.$pk")
-    ->where("$pivot.$pk", $this->$identifier);
+    ->where("$pivot.$pk", $this->$identifier)
+    ->get();
   }
 
   private function getKey($class, $fk) {

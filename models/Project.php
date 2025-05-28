@@ -18,7 +18,7 @@ class Project extends Model {
     "subject_id",
   ];
 
-  // public function users(): Collection {
-  //   return $this->belongs(User::class, true);
-  // }
+  public function students(): Collection {
+    return $this->belongs(Student::class, true);
+  }
 }
