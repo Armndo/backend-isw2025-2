@@ -10,7 +10,7 @@ class Student extends Model {
     "paternal_lastname",
     "maternal_lastname",
     "email",
-    //"project",
+    "major_id",
   ];
 
   protected $hidden = [
@@ -18,6 +18,7 @@ class Student extends Model {
     "name",
     "paternal_lastname",
     "maternal_lastname",
+    "major_id",
   ];
 
   protected $appends = [

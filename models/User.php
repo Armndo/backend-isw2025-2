@@ -1,6 +1,7 @@
 <?php
 namespace Models;
 
+use Core\Collection;
 use Core\Model;
 use Core\Session;
 
