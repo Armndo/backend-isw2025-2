@@ -22,15 +22,29 @@ trait Queryable {
     return (new Query(new static))->orderBy($field, $direction);
   }
 
-  public static function find(string | int $id): static | null {
+  public static function find(string | int $id): ?static {
     return (new Query(new static))->find($id);
   }
 
-  public static function first(): static {
+  public static function first(): ?static {
     return (new Query(new static))->first();
   }
 
   public static function get(): Collection {
     return (new Query(new static))->get();
+  }
+
+  public static function exists(array $conditions, bool $return = false, ?Model $model = null): null|bool|Model|Collection {
+    return (new Query($model ?? new static))->exists($conditions, $return);
+  }
+
+  // create many WIP
+  // public static function create(array $items)
+
+  // update many WIP
+  // public function update(array $changes) 
+
+  public function attach(string $class, int|string|array $ids, ?string $table = null): null|Model|Collection {
+    return (new Query($this))->attach($class, $ids, $table);
   }
 }

@@ -55,6 +55,10 @@ class Model extends ArrayObject {
     return $this->table;
   }
 
+  public function setTable(string $table) {
+    $this->table = $table;
+  }
+
   public function getFields(): array {
     $fields = [];
 

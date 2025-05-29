@@ -7,7 +7,12 @@ use Models\User;
 
 class StudentController extends Controller{
   public function index() {
-    return Student::get()->toJson();
+    if (!$this->user?->isAdmin()) {
+      http_response_code(401);
+      return json_encode(["error" => true, "message" => "Unauthorized."]);
+    }
+
+    return Student::get();
   }
 
   public function view($id) {
@@ -16,7 +21,7 @@ class StudentController extends Controller{
       return json_encode(["error" => true, "message" => "Unauthorized."]);
     }
 
-    return Student::find($id)->toJson();
+    return Student::find($id);
   }
 
   public function store() {
@@ -71,8 +76,6 @@ class StudentController extends Controller{
     //   "major_id"
     // ]));
 
-    // return $student;
-
-    return 1;
+    return $student;
   }
 }

@@ -2,7 +2,7 @@
 namespace Core;
 
 trait Storable {
-  public function save() {
+  public function save(): static {
     return (new Query($this))->save();
   }
 }

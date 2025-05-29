@@ -38,8 +38,12 @@ class Utils {
     ];
   }
 
-  public static function selects($fields) {
+  public static function selects(array $fields, bool $count = false): string {
     $selects = [];
+
+    if ($count) {
+      return "count(*)";
+    }
 
     foreach ($fields as $field) {
       $selects[] = $field !== "*" ? implode(".", array_map(function($item) {
@@ -47,10 +51,12 @@ class Utils {
       }, explode(".", $field))) : $field;
     }
 
-    return implode(", ", $selects);
+    $res = implode(", ", $selects);
+
+    return $count ? "count($res)" : $res;
   }
 
-  public static function wheres($conditions, $toString = false): array | string {
+  public static function wheres($conditions, $toString = false): array|string {
     if (sizeof($conditions) === 0) {
       return $toString ? "" : [];
     }
@@ -113,5 +119,26 @@ class Utils {
 
   public static function token() {
     return bin2hex(random_bytes(32));
+  }
+
+  public static function getKey($class, ?string $fk = null): string {
+    if (!is_null($fk)) {
+      return $fk;
+    }
+
+    $classname = explode("\\", $class);
+    return strtolower(end($classname)) . "_id";
+  }
+
+  public static function getPivot(array $classes): string {
+    $tables = array_map(function($class) {
+      $classname = explode("\\", $class);
+
+      return strtolower(end($classname));
+    }, $classes);
+
+    sort($tables);
+
+    return implode("_", $tables);
   }
 }

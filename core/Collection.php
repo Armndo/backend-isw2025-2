@@ -5,8 +5,9 @@ use ArrayAccess;
 use IteratorAggregate;
 use Traversable;
 use ArrayIterator;
+use Countable;
 
-class Collection implements ArrayAccess, IteratorAggregate {
+class Collection implements ArrayAccess, IteratorAggregate, Countable {
   private $items = [];
 
   public function __construct(array $items = []) {
@@ -37,7 +38,17 @@ class Collection implements ArrayAccess, IteratorAggregate {
     return new ArrayIterator($this->items);
   }
 
-  public function map(?callable $callback = null): array {
+  public function count(): int {
+    return sizeof($this->items);
+  }
+
+  public function map(?callable $callback = null, bool $asArray = true ): array|Collection {
+    if ($callback && !$asArray) {
+      return new Collection(
+        array_map($callback, $this->items)
+      );
+    }
+
     $res = [];
 
     foreach ($this->items as $item) {
@@ -45,6 +56,26 @@ class Collection implements ArrayAccess, IteratorAggregate {
     }
 
     return $res;
+  }
+
+  public function each(callable $callback) {
+    foreach ($this->items as $item) {
+      $callback($item);
+    }
+  }
+
+  public function push(mixed $item): self {
+    $this->items[] = $item;
+
+    return $this;
+  }
+
+  public function concat(Collection $collection): self {
+    foreach ($collection as $item) {
+      $this->items[] = $item;
+    }
+
+    return $this;
   }
 
   public function toJson(): string {

@@ -1,6 +1,7 @@
 <?php
 namespace Core;
 
+use Exception;
 use PDO;
 use PDOException;
 
@@ -62,12 +63,12 @@ class Query {
     return $this;
   }
 
-  private function resolve($exec = false): string {
+  private function resolve(bool $exec = false, bool $count = false): ?string {
     $table = $this->instance->getTable();
     $fields = $this->instance->getFields();
 
     if (!$exec) {
-      $selects = Utils::selects($this->selects);
+      $selects = Utils::selects($this->selects, $count);
       $where = Utils::wheres($this->wheres, true);
       $orderBy = Utils::orders($this->orders);
       $limit = $this->limit === null ? "" : " LIMIT $this->limit";
@@ -76,8 +77,10 @@ class Query {
       if (getenv("DEBUG")) {
         print_r("SELECT $selects FROM \"$table\"$joins$where$orderBy$limit\n");
       }
-
-      return "SELECT $selects FROM \"$table\"$joins$where$orderBy$limit";
+      
+      if (!getenv("STOP_QUERIES")) {
+        return "SELECT $selects FROM \"$table\"$joins$where$orderBy$limit";
+      }
     }
 
     $identifier = $this->instance->getIdentifier();
@@ -94,8 +97,10 @@ class Query {
       if (getenv("DEBUG")) {
         print_r("UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *\n");
       }
-
-      return "UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *";
+      
+      if (!getenv("STOP_QUERIES")) {
+        return "UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *";
+      }
     }
 
     $values = Utils::values($fields, $appends);
@@ -104,8 +109,12 @@ class Query {
     if (getenv("DEBUG")) {
       print_r("INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *\n");
     }
+    
+    if (!getenv("STOP_QUERIES")) {
+      return "INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *";
+    }
 
-    return "INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *";
+    return null;
   }
 
   public function find(int | string $id): Model | null {
@@ -113,19 +122,23 @@ class Query {
     $this->limit = 1;
     $result = $this->run($this->resolve());
 
-    if (sizeof($result) < 1) {
+    if (sizeof($result ?? []) < 1) {
       return null;
     }
 
     return $this->instance->fill($result[0], true, true);
   }
 
-  public function get(string | null $class = null): Collection {
+  public function get(?string $class = null): Collection {
     return new Collection(
       array_map(function ($fields) use ($class) {
-        return new ($class ? $class : get_class($this->instance))($fields, true, true);
-      }, $this->run($this->resolve()))
+        return new ($class ?? $this->instance::class)($fields, true, true);
+      }, $this->run($this->resolve()) ?? [])
     );
+  }
+
+  public function count(): int {
+    return $this->run($this->resolve(count: true))[0]["count"] ?? 0;
   }
 
   public function first(string | null $class = null): ?Model {
@@ -133,14 +146,108 @@ class Query {
 
     $object = $this->run($this->resolve());
 
-    return sizeof($object) > 0 ? new ($class ? $class : get_class($this->instance))($object[0], true, true) : null;
+    return sizeof($object ?? []) > 0 ? new ($class ? $class : get_class($this->instance))($object[0], true, true) : null;
   }
 
   public function save(): Model {
-    return $this->instance->fill($this->run($this->resolve(true), true)[0], true, true);
+    return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
   }
 
-  private function run($sql): array {
+  public function exists(array $conditions, bool $return = false): null|bool|Model|Collection {
+    foreach ($conditions as $condition) {
+      $this->where(...$condition);
+    }
+
+    $count = $this->count();
+
+    if ($return) {
+      return $count > 1 ? $this->get() : $this->first();
+    }
+
+    return $count > 0;
+  }
+
+  public function attach(string $class, int|string|array $ids, ?string $table = null): null|Model|Collection {
+    $instance = $this->instance;
+    $instance_key = Utils::getKey($instance::class);
+    $instance_id = $instance->{$instance->getIdentifier()};
+    $class_key = Utils::getKey($class);
+
+    $model = new Model();
+    $model->setTable($table ?? Utils::getPivot([$instance::class, $class]));
+
+    try {
+      if (is_string($ids) || is_numeric($ids)) {
+        if (
+          $exists = Model::exists([
+            [$instance_key, $instance_id],
+            [$class_key, $ids],
+          ], true, $model)
+        ) {
+          return $class::find($exists->{$class_key});
+        }
+
+        $model->fill([
+          $instance_key => $instance_id,
+          $class_key => $ids,
+        ], true)
+        ->save();
+
+        return $class::find($model->{$class_key});
+      }
+
+      if (!is_array($ids)) {
+        return null;
+      }
+
+      $items = new Collection();
+
+      foreach ($ids as $id) {
+        if (
+          !$exists = Model::exists([
+            ...(!is_array($id) ? [[$class_key, $id]]
+              : array_map(function($key, $value) {
+                return [$key, $value];
+              }, array_keys($id), array_values($id))
+            ),
+            [$instance_key, $instance_id],
+          ], true, $model)
+        ) {
+          $model->fill([
+            ...(!is_array($id) ? [$class_key => $id] : $id),
+            $instance_key => $instance_id,
+          ], true)
+          ->save();
+
+          $items->push($class::find($model->{$class_key}));
+
+          continue;
+        }
+
+        if ($exists instanceof Collection) {
+          $items->concat(
+            $exists->map(function ($item) use ($class, $class_key) {
+              return $item;
+            }, false)
+          );
+
+          continue;
+        }
+
+        $items->push($class::find($exists->{$class_key}));
+      }
+
+      return $items;
+    } catch (Exception $e) {
+      return null;
+    }
+  }
+
+  private function run(?string $sql): ?array {
+    if (!$sql) {
+      return null;
+    }
+
     try {
       $conn = (new Connection())->getConnection();
       $query = $conn->prepare($sql);
