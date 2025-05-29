@@ -6,6 +6,7 @@ use Core\Model;
 
 class Student extends Model {
   protected $fillable = [
+    "id",
     "user_id",
     "major_id",
   ];
@@ -15,7 +16,7 @@ class Student extends Model {
     "major_id",
   ];
 
-  public function user(): ?User {
+  public function user(): User {
     return $this->belongs(User::class);
   }
 

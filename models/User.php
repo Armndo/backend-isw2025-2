@@ -10,6 +10,7 @@ class User extends Model {
     "name",
     "paternal_lastname",
     "maternal_lastname",
+    "type",
     "email",
     "password",
   ];
@@ -22,7 +23,11 @@ class User extends Model {
     return $this->type === "admin";
   }
 
-  public function sessions() {
+  public function sessions(): Collection {
     return $this->has(Session::class, true);
+  }
+
+  public function student(): Student {
+    return $this->has(Student::class);
   }
 }

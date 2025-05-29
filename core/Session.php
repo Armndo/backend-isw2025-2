@@ -17,12 +17,18 @@ class Session extends Model {
   ];
 
   public static function check(Request $request): ?Session {
-    $token = trim($request->headers()["Authorization"] ?? "");
+    $auth = $request->headers()["Authorization"] ?? "";
+
+    if (str_contains($auth, "Bearer ")) {
+      $auth = explode("Bearer ", $auth)[1];
+    }
+
+    $token = trim($auth);
 
     return Session::where("token", $token)->where("expired", false)->first();
   }
 
-  public function user(): ?User {
+  public function user(): User {
     return $this->belongs(User::class);
   }
 }
