@@ -6,7 +6,8 @@ use PDO;
 use PDOException;
 
 class Query {
-  private $instance;
+  private Model $instance;
+  private ?Collection $collection = null;
   private $wheres = [];
   private $joins = [];
   private $orders = [];
@@ -103,21 +104,21 @@ class Query {
       }
     }
 
-    $values = Utils::values($fields, $appends);
-    $fields = Utils::fields($fields, $appends, $identifier);
+    $values = Utils::values($this->collection ? $this->instance->getFillable() : $fields, $appends, collection: $this->collection);
+    $fields = Utils::fields($this->collection ? $this->instance->getFillable() : $fields, $appends, $this->collection);
 
     if (getenv("DEBUG")) {
-      print_r("INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *\n");
+      print_r("INSERT INTO \"$table\" ($fields) VALUES $values RETURNING *\n");
     }
     
     if (!getenv("STOP_QUERIES")) {
-      return "INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *";
+      return "INSERT INTO \"$table\" ($fields) VALUES $values RETURNING *";
     }
 
     return null;
   }
 
-  public function find(int | string $id): Model | null {
+  public function find(int|string $id): ?Model {
     $this->wheres[] = Utils::where([$this->instance->getIdentifier(), $id]);
     $this->limit = 1;
     $result = $this->run($this->resolve());
@@ -130,26 +131,45 @@ class Query {
   }
 
   public function get(?string $class = null): Collection {
-    return new Collection(
-      array_map(function ($fields) use ($class) {
-        return new ($class ?? $this->instance::class)($fields, true, true);
-      }, $this->run($this->resolve()) ?? [])
-    );
+    return new Collection($this->run($this->resolve()) ?? [])
+    ->map(function($item) use ($class) {
+      return new ($class ?? $this->instance::class)($item, true, true);
+    }, false);
   }
 
   public function count(): int {
     return $this->run($this->resolve(count: true))[0]["count"] ?? 0;
   }
 
-  public function first(string | null $class = null): ?Model {
+  public function first(?string $class = null): ?Model {
     $this->limit = 1;
 
     $object = $this->run($this->resolve());
 
-    return sizeof($object ?? []) > 0 ? new ($class ? $class : get_class($this->instance))($object[0], true, true) : null;
+    return sizeof($object ?? []) > 0 ? new ($class ?? $this->instance::class)($object[0], true, true) : null;
   }
 
   public function save(): Model {
+    return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
+  }
+
+  public function create(array $items): null|Model|Collection {
+    if (sizeof($items) === 0) {
+      return null;
+    }
+
+    if (is_array($items[0])) {
+      $this->collection = new Collection($items)->map(function($item) {
+        return new ($this->instance::class)($item);
+      }, false);
+
+      return new Collection($this->run($this->resolve(true)) ?? [])
+      ->map(function($item) {
+        return new ($this->instance::class)($item, true, true);
+      }, false);
+    }
+
+    $this->instance->fill($items);
     return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
   }
 
@@ -167,7 +187,7 @@ class Query {
     return $count > 0;
   }
 
-  public function attach(string $class, int|string|array $ids, ?string $table = null): null|Model|Collection {
+  public function attach(string $class, int|string|array $ids, ?string $table = null) {
     $instance = $this->instance;
     $instance_key = Utils::getKey($instance::class);
     $instance_id = $instance->{$instance->getIdentifier()};
@@ -178,13 +198,11 @@ class Query {
 
     try {
       if (is_string($ids) || is_numeric($ids)) {
-        if (
-          $exists = Model::exists([
-            [$instance_key, $instance_id],
-            [$class_key, $ids],
-          ], true, $model)
-        ) {
-          return $class::find($exists->{$class_key});
+        if (Model::exists([
+          [$instance_key, $instance_id],
+          [$class_key, $ids],
+        ], model: $model)) {
+          return ;
         }
 
         $model->fill([
@@ -192,26 +210,22 @@ class Query {
           $class_key => $ids,
         ], true)
         ->save();
-
-        return $class::find($model->{$class_key});
       }
 
       if (!is_array($ids)) {
-        return null;
+        return ;
       }
-
-      $items = new Collection();
 
       foreach ($ids as $id) {
         if (
-          !$exists = Model::exists([
+          !Model::exists([
             ...(!is_array($id) ? [[$class_key, $id]]
               : array_map(function($key, $value) {
                 return [$key, $value];
               }, array_keys($id), array_values($id))
             ),
             [$instance_key, $instance_id],
-          ], true, $model)
+          ], model: $model)
         ) {
           $model->fill([
             ...(!is_array($id) ? [$class_key => $id] : $id),
@@ -219,27 +233,11 @@ class Query {
           ], true)
           ->save();
 
-          $items->push($class::find($model->{$class_key}));
-
           continue;
         }
-
-        if ($exists instanceof Collection) {
-          $items->concat(
-            $exists->map(function ($item) use ($class, $class_key) {
-              return $item;
-            }, false)
-          );
-
-          continue;
-        }
-
-        $items->push($class::find($exists->{$class_key}));
       }
-
-      return $items;
     } catch (Exception $e) {
-      return null;
+			print($e->getMessage() . "\n");
     }
   }
 

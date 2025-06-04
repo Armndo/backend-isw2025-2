@@ -59,6 +59,10 @@ class Model extends ArrayObject {
     $this->table = $table;
   }
 
+  public function getFillable(): array {
+    return $this->fillable;
+  }
+
   public function getFields(): array {
     $fields = [];
 
@@ -95,7 +99,7 @@ class Model extends ArrayObject {
     return false;
   }
 
-  public function fill($fields = [], bool $ignoreFillable = false, bool $stored = false): self {
+  public function fill($fields = [], bool $ignoreFillable = false, bool $stored = false): static {
     if (!$this->stored) {
       $this->stored = $stored;
     }
@@ -115,11 +119,11 @@ class Model extends ArrayObject {
     return $this;
   }
 
-  public function toAssoc() {
+  public function toAssoc(bool $ignore = false): array {
     $arr = [];
 
     foreach($this as $field => $value) {
-      if (!in_array($field, $this->hidden)) {
+      if ($ignore || !in_array($field, $this->hidden)) {
         $arr[$field] = $value;
       }
     }
@@ -127,11 +131,11 @@ class Model extends ArrayObject {
     return $arr;
   }
 
-  public function toJson() {
-    return json_encode($this->toAssoc(), JSON_PRETTY_PRINT);
+  public function toJson(bool $ignore = false): string {
+    return json_encode($this->toAssoc($ignore), JSON_PRETTY_PRINT);
   }
 
-  public function __toString() {
+  public function __toString(): string {
     return json_encode($this, JSON_PRETTY_PRINT);
   }
 }

@@ -15,7 +15,7 @@ trait Relatable {
     $fk = Utils::getKey($class, $fk);
 
     if (!$many) {
-      return $class::find($this->$fk);
+      return $this->$fk ? $class::find($this->$fk) : null;
     }
 
     if ($pivot === null) {

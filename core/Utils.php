@@ -74,10 +74,14 @@ class Utils {
     return $toString ? (" WHERE " . implode(" AND ", $wheres)) : $wheres;
   }
 
-  public static function fields($fields, $appends, $identifier): string {
+  public static function fields(array $fields, array $appends, ?Collection $collection = null): string {
     $aux = [];
 
-    foreach(array_keys($fields) as $field) {
+    if ($collection) foreach($fields as $field) {
+      $aux[] = "\"$field\"";
+    }
+
+    if (!$collection) foreach(array_keys($fields) as $field) {
       if (in_array($field, $appends)) {
         continue;
       }
@@ -88,22 +92,43 @@ class Utils {
     return implode(", ", $aux);
   }
 
-  public static function values($fields, $appends, $update = false, $identifier = null): string {
+  private static function valueToString(null|bool|string|int $value): string {
+    if (is_null($value)) {
+      return "NULL";
+    } else if (is_string($value)) {
+      return "'$value'";
+    } else if (is_bool($value)) {
+      return $value ? "TRUE" : "FALSE";
+    }
+
+    return $value;
+  }
+
+  public static function values(array $fields, array $appends, bool $update = false, ?string $identifier = null, ?Collection $collection = null): string {
     $aux = [];
+
+    if ($collection) {
+      $aux = $collection->map(function ($item) use ($fields) {
+        foreach ($fields as $field) {
+          $tmp[] = static::valueToString($item[$field]);
+        }
+
+        return "(" . implode(", ", $tmp) . ")";
+      });
+
+      return implode(", ", $aux);
+    }
 
     foreach($fields as $field => $value) {
       if (is_null($value) || ($field === $identifier && !is_string($field)) || in_array($field, $appends)) {
         continue;
-      } else if (is_string($value)) {
-        $value = "'$value'";
-      } else if (is_bool($value)) {
-        $value = $value ? "TRUE" : "FALSE";
       }
 
+      $value = static::valueToString($value);
       $aux[] = !$update ? $value : "\"$field\" = $value";
     }
 
-    return implode(", ", $aux);
+    return "(" . implode(", ", $aux) . ")";
   }
 
   public static function orders($orders = []) {
