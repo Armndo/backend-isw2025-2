@@ -9,6 +9,7 @@ class Query {
   private Model $instance;
   private ?Collection $collection = null;
   private $wheres = [];
+  private $ors = [];
   private $joins = [];
   private $orders = [];
   private $selects = [ "*" ];
@@ -34,6 +35,13 @@ class Query {
     } else if(sizeof($conditions) === 1) {
       $this->wheres = [...$this->wheres, ...Utils::wheres($conditions[0])];
     }
+
+    return $this;
+  }
+
+  public function orWhere(...$conditions): self {
+    $this->where(...$conditions);
+    $this->ors[] = sizeof($this->wheres) - 1;
 
     return $this;
   }
@@ -64,23 +72,30 @@ class Query {
     return $this;
   }
 
+  public function orWhereRaw(string $raw): self {
+    $this->wheres[] = $raw;
+    $this->ors[] = sizeof($this->wheres) - 1;
+
+    return $this;
+  }
+
   private function resolve(bool $exec = false, bool $count = false): ?string {
     $table = $this->instance->getTable();
     $fields = $this->instance->getFields();
 
     if (!$exec) {
       $selects = Utils::selects($this->selects, $count);
-      $where = Utils::wheres($this->wheres, true);
+      $wheres = Utils::wheres($this->wheres, $this->ors, true);
       $orderBy = Utils::orders($this->orders);
       $limit = $this->limit === null ? "" : " LIMIT $this->limit";
       $joins = sizeof($this->joins) === 0 ? "" : " JOIN " . implode(" JOIN ", $this->joins);
 
       if (getenv("DEBUG")) {
-        print_r("SELECT $selects FROM \"$table\"$joins$where$orderBy$limit\n");
+        print_r("SELECT $selects FROM \"$table\"$joins$wheres$orderBy$limit\n");
       }
       
       if (!getenv("STOP_QUERIES")) {
-        return "SELECT $selects FROM \"$table\"$joins$where$orderBy$limit";
+        return "SELECT $selects FROM \"$table\"$joins$wheres$orderBy$limit";
       }
     }
 

@@ -56,7 +56,7 @@ class Utils {
     return $count ? "count($res)" : $res;
   }
 
-  public static function wheres($conditions, $toString = false): array|string {
+  public static function wheres(array $conditions, array $ors = [], bool $toString = false): array|string {
     if (sizeof($conditions) === 0) {
       return $toString ? "" : [];
     }
@@ -71,7 +71,21 @@ class Utils {
       }
     }
 
-    return $toString ? (" WHERE " . implode(" AND ", $wheres)) : $wheres;
+    if (!$toString) {
+      return $wheres;
+    }
+
+    $string = "";
+
+    foreach ($wheres as $index => $where) {
+      if ($index > 0) {
+        $string .= in_array($index, $ors) ? " OR " : " AND ";
+      }
+
+      $string .= $where;
+    } 
+
+    return " WHERE $string";
   }
 
   public static function fields(array $fields, array $appends, ?Collection $collection = null): string {
