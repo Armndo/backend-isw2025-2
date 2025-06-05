@@ -15,6 +15,11 @@ class SubjectController extends Controller {
   }
 
   public function view($id) {
+    if (!$this->session) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
     $subject = Subject::find(+$id);
 
     if (!$subject) {
