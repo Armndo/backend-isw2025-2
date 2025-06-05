@@ -18,7 +18,11 @@ trait Storable {
     (new Query($this))->attach($class, $ids, $table);
   }
 
-  public function detach(string $class, int|string|array $ids, ?string $table = null) {
+  public function detach(string $class, int|string|array $ids = [], ?string $table = null) {
     (new Query($this))->detach($class, $ids, $table);
+  }
+
+  public function sync(string $class, array $ids = [], ?string $table = null) {
+    (new Query($this))->sync($class, $ids, $table);
   }
 }

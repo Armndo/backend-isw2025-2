@@ -256,7 +256,7 @@ class Query {
         ->save();
       }
 
-      if (!is_array($ids) || sizeof($ids) === 0) {
+      if (sizeof($ids) === 0) {
         return ;
       }
 
@@ -287,7 +287,7 @@ class Query {
     }
   }
 
-  public function detach(string $class, int|string|array $ids, ?string $table = null) {
+  public function detach(string $class, int|string|array $ids = [], ?string $table = null) {
     $instance = $this->instance;
     $instance_key = Utils::getKey($instance::class);
     $instance_id = $instance->{$instance->getIdentifier()};
@@ -311,14 +311,10 @@ class Query {
         ]);
       }
 
-      if (!is_array($ids) || sizeof($ids) === 0) {
-        return ;
-      }
-
       if (Model::exists(
         [[$instance_key, $instance_id]],
         [...(
-          !is_array($ids[0]) ?
+          !is_array($ids[0] ?? null) ?
           array_map(fn($item) => [$class_key, $item], $ids) :
           array_merge(...array_map(fn($item) => array_map(fn($key, $value) => [$key, $value], array_keys($item), array_values($item)), $ids))
         )],
@@ -327,7 +323,7 @@ class Query {
         $model->delete(
           [[$instance_key, $instance_id]],
           [...(
-            !is_array($ids[0]) ?
+            !is_array($ids[0] ?? null) ?
             array_map(fn($item) => [$class_key, $item], $ids) :
             array_merge(...array_map(fn($item) => array_map(fn($key, $value) => [$key, $value], array_keys($item), array_values($item)), $ids))
           )]
@@ -336,6 +332,11 @@ class Query {
     } catch (Exception $e) {
 			print($e->getMessage() . "\n");
     }
+  }
+
+  public function sync(string $class, array $ids = [], ?string $table = null) {
+    $this->detach($class, table: $table);
+    $this->attach($class, $ids, $table);
   }
 
   private function run(?string $sql): ?array {
