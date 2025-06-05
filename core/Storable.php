@@ -10,6 +10,10 @@ trait Storable {
     return (new Query($this))->save();
   }
 
+  public static function update(array $fields = []): Collection {
+    return (new Query(new static))->update($fields);
+  }
+
   public function delete(array $wheres = [], array $orWheres = []): bool {
     return (new Query($this))->delete($wheres, $orWheres);
   }
