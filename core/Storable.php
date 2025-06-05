@@ -10,7 +10,7 @@ trait Storable {
     return (new Query($this))->save();
   }
 
-  public static function update(array $fields = []): Collection {
+  public static function update(array $fields): Collection {
     return (new Query(new static))->update($fields);
   }
 

@@ -15,12 +15,9 @@ class UserController extends Controller {
       return ["error" => true, "message" => "Unauthorized."];
     }
 
-    foreach(Session::where("user_id", $user->id)->where("expired", false)->get() as $session) {
-      $session->expired = true;
-      $session->save();
-    }
+    Session::where("user_id", $user->id)->where("expired", false)->update([ "expired" => true ]);
 
-    return (new Session(["user_id" => $user->id, "token" => Utils::token()]))->save()->toJson();
+    return (new Session(["user_id" => $user->id, "token" => Utils::token()]))->save();
   }
 
   public function logout() {
