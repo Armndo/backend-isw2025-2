@@ -37,8 +37,4 @@ trait Queryable {
   public static function exists(array $wheres, array $orWheres = [], bool $return = false, ?Model $model = null): null|bool|static|Collection {
     return (new Query($model ?? new static))->exists($wheres, $orWheres, $return);
   }
-
-  public function attach(string $class, int|string|array $ids, ?string $table = null) {
-    (new Query($this))->attach($class, $ids, $table);
-  }
 }

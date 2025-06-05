@@ -10,7 +10,15 @@ trait Storable {
     return (new Query($this))->save();
   }
 
-  public function delete(): bool {
-    return (new Query($this))->delete();
+  public function delete(array $wheres = [], array $orWheres = []): bool {
+    return (new Query($this))->delete($wheres, $orWheres);
+  }
+
+  public function attach(string $class, int|string|array $ids, ?string $table = null) {
+    (new Query($this))->attach($class, $ids, $table);
+  }
+
+  public function detach(string $class, int|string|array $ids, ?string $table = null) {
+    (new Query($this))->detach($class, $ids, $table);
   }
 }

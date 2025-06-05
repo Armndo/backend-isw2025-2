@@ -139,7 +139,7 @@ class Query {
   }
 
   public function find(int|string $id): ?Model {
-    $this->wheres[] = Utils::where([$this->instance->getIdentifier(), $id]);
+    $this->where($this->instance->getIdentifier(), $id);
     $this->limit = 1;
     $result = $this->run($this->resolve());
 
@@ -167,14 +167,43 @@ class Query {
     return sizeof($object ?? []) > 0 ? new ($class ?? $this->instance::class)($object[0], true, true) : null;
   }
 
+  private function chainWheres(array $wheres, array $orWheres = []) {
+    foreach ($wheres as $where) {
+      $this->where(...$where);
+    }
+
+    if (sizeof($orWheres) === 1) {
+      $this->where(...$orWheres[0]);
+    } else {
+      foreach ($orWheres as $where) {
+        $this->orWhere(...$where);
+      }
+    }
+  }
+
+  public function exists(array $wheres, array $orWheres = [], bool $return = false): null|bool|Model|Collection {
+    $this->chainWheres($wheres, $orWheres);
+    $count = $this->count();
+
+    if ($return) {
+      return $count > 1 ? $this->get() : $this->first();
+    }
+
+    return $count > 0;
+  }
+
   public function save(): Model {
     return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
   }
 
-  public function delete(): bool {
-    $identifier = $this->instance->getIdentifier();
-    $this->wheres[] = Utils::where([$identifier, $this->instance->$identifier]);
-    
+  public function delete(array $wheres = [], array $orWheres = []): bool {
+    if (sizeof($wheres) === 0) {
+      $identifier = $this->instance->getIdentifier();
+      $this->where($identifier, $this->instance->$identifier);
+    } else {
+      $this->chainWheres($wheres, $orWheres);
+    }
+
     return sizeof($this->run($this->resolve(true, delete: true))) > 0;
   }
 
@@ -200,28 +229,6 @@ class Query {
 
     $this->instance->fill($items);
     return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
-  }
-
-  public function exists(array $wheres, array $orWheres = [], bool $return = false): null|bool|Model|Collection {
-    foreach ($wheres as $where) {
-      $this->where(...$where);
-    }
-
-    if (sizeof($orWheres) === 1) {
-      $this->where(...$orWheres[0]);
-    } else {
-      foreach ($orWheres as $where) {
-        $this->orWhere(...$where);
-      }
-    }
-
-    $count = $this->count();
-
-    if ($return) {
-      return $count > 1 ? $this->get() : $this->first();
-    }
-
-    return $count > 0;
   }
 
   public function attach(string $class, int|string|array $ids, ?string $table = null) {
@@ -273,6 +280,57 @@ class Query {
           array_map(fn($item) => [$instance_key => $instance_id, $class_key => $item], $ids) :
           array_map(fn($item) => array_merge([$instance_key => $instance_id], $item), $ids),
           $model
+        );
+      }
+    } catch (Exception $e) {
+			print($e->getMessage() . "\n");
+    }
+  }
+
+  public function detach(string $class, int|string|array $ids, ?string $table = null) {
+    $instance = $this->instance;
+    $instance_key = Utils::getKey($instance::class);
+    $instance_id = $instance->{$instance->getIdentifier()};
+    $class_key = Utils::getKey($class);
+
+    $model = new Model();
+    $model->setTable($table ?? Utils::getPivot([$instance::class, $class]));
+
+    try {
+      if (is_string($ids) || is_numeric($ids)) {
+        if (!Model::exists([
+          [$instance_key, $instance_id],
+          [$class_key, $ids],
+        ], model: $model)) {
+          return ;
+        }
+
+        return $model->delete([
+          [$instance_key, $instance_id],
+          [$class_key, $ids],
+        ]);
+      }
+
+      if (!is_array($ids) || sizeof($ids) === 0) {
+        return ;
+      }
+
+      if (Model::exists(
+        [[$instance_key, $instance_id]],
+        [...(
+          !is_array($ids[0]) ?
+          array_map(fn($item) => [$class_key, $item], $ids) :
+          array_merge(...array_map(fn($item) => array_map(fn($key, $value) => [$key, $value], array_keys($item), array_values($item)), $ids))
+        )],
+        model: $model
+      )) {
+        $model->delete(
+          [[$instance_key, $instance_id]],
+          [...(
+            !is_array($ids[0]) ?
+            array_map(fn($item) => [$class_key, $item], $ids) :
+            array_merge(...array_map(fn($item) => array_map(fn($key, $value) => [$key, $value], array_keys($item), array_values($item)), $ids))
+          )]
         );
       }
     } catch (Exception $e) {
