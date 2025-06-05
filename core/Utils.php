@@ -230,7 +230,6 @@ class Utils {
 
   public static function dump(...$printable) {
     var_dump(...$printable);
-    print("\n");
   }
 
   public static function dd(...$printable) {

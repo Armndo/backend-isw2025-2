@@ -75,7 +75,7 @@ class Query {
     return $this;
   }
 
-  private function resolve(bool $exec = false, bool $update = false, bool $count = false): ?string {
+  private function resolve(bool $exec = false, bool $update = false, bool $delete = false, bool $count = false): ?string {
     $table = $this->instance->getTable();
     $fields = $this->instance->getFields();
 
@@ -98,7 +98,7 @@ class Query {
     $identifier = $this->instance->getIdentifier();
     $appends = $this->instance->getAppends();
 
-    if ((isset($fields[$identifier]) && $this->instance->getStored() || $update)) {
+    if (!$delete && ((isset($fields[$identifier]) && $this->instance->getStored() || $update))) {
       $values = Utils::values($fields, $appends, true, $identifier);
       $id = Utils::valueToString($fields[$identifier] ?? null);
       $wheres = $update ? Utils::wheres($this->wheres, $this->ors, true) : " WHERE \"$identifier\" = $id";
@@ -109,6 +109,18 @@ class Query {
       
       if (!getenv("STOP_QUERIES")) {
         return "UPDATE \"$table\" SET $values$wheres RETURNING *";
+      }
+    }
+
+    if ($delete) {
+      $wheres = Utils::wheres($this->wheres, $this->ors, true);
+
+      if (getenv("DEBUG")) {
+        print_r("DELETE FROM \"$table\"$wheres\n");
+      }
+      
+      if (!getenv("STOP_QUERIES")) {
+        return "DELETE FROM \"$table\"$wheres";
       }
     }
 
@@ -157,6 +169,13 @@ class Query {
 
   public function save(): Model {
     return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
+  }
+
+  public function delete(): bool {
+    $identifier = $this->instance->getIdentifier();
+    $this->wheres[] = Utils::where([$identifier, $this->instance->$identifier]);
+    
+    return sizeof($this->run($this->resolve(true, delete: true))) > 0;
   }
 
   public function update(array $fields): Collection {

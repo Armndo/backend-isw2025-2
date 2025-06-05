@@ -9,4 +9,8 @@ trait Storable {
   public function save(): static {
     return (new Query($this))->save();
   }
+
+  public function delete(): bool {
+    return (new Query($this))->delete();
+  }
 }
