@@ -13,7 +13,6 @@ class Project extends Model {
   ];
 
   protected $hidden = [
-    "id",
     "group_id",
     "subject_id",
   ];

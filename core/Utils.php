@@ -232,4 +232,9 @@ class Utils {
     var_dump(...$printable);
     print("\n");
   }
+
+  public static function dd(...$printable) {
+    static::dump(...$printable);
+    exit();
+  }
 }

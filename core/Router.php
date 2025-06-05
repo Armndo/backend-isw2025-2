@@ -11,11 +11,11 @@ class Router {
     static::$routes[$method][$pattern] = $callback;
   }
 
-  public static function get($uri, callable | array $callback) {
+  public static function get($uri, callable|array $callback) {
     static::addRoute("GET", $uri, $callback);
   }
 
-  public static function post($uri, callable | array $callback) {
+  public static function post($uri, callable|array $callback) {
     static::addRoute("POST", $uri, $callback);
   }
 
@@ -23,6 +23,7 @@ class Router {
     $method = $_SERVER['REQUEST_METHOD'];
     $path = $_SERVER['REQUEST_URI'] ?? '/';
     $path = explode('?', $path)[0];
+    $resolved = null;
 
     header('Content-Type: application/json; charset=utf-8');
     header("Access-Control-Allow-Origin: *");
@@ -44,10 +45,16 @@ class Router {
         if (is_array($callback)) {
           [$class, $method] = $callback;
           $controller = new $class();
-          return $controller->$method(...$params);
+          $resolved = $controller->$method(...$params);
+        } else {
+          $resolved = $callback(...$params);
         }
 
-        return $callback(...$params);
+        if (is_object($resolved) && method_exists($resolved, "toJson")) {
+          return $resolved->toJson();
+        }
+
+        return json_encode($resolved, JSON_PRETTY_PRINT);
       }
     }
 
