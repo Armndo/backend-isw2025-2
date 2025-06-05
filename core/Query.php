@@ -75,7 +75,7 @@ class Query {
     return $this;
   }
 
-  private function resolve(bool $exec = false, bool $count = false): ?string {
+  private function resolve(bool $exec = false, bool $update = false, bool $count = false): ?string {
     $table = $this->instance->getTable();
     $fields = $this->instance->getFields();
 
@@ -98,20 +98,17 @@ class Query {
     $identifier = $this->instance->getIdentifier();
     $appends = $this->instance->getAppends();
 
-    if (isset($fields[$identifier]) && $this->instance->getStored()) {
+    if ((isset($fields[$identifier]) && $this->instance->getStored() || $update)) {
       $values = Utils::values($fields, $appends, true, $identifier);
-      $id = $fields[$identifier];
-
-      if (is_string($id)) {
-        $id = "'$id'";
-      }
+      $id = Utils::valueToString($fields[$identifier] ?? null);
+      $wheres = $update ? Utils::wheres($this->wheres, $this->ors, true) : " WHERE \"$identifier\" = $id";
 
       if (getenv("DEBUG")) {
-        print_r("UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *\n");
+        print_r("UPDATE \"$table\" SET $values$wheres RETURNING *\n");
       }
       
       if (!getenv("STOP_QUERIES")) {
-        return "UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *";
+        return "UPDATE \"$table\" SET $values$wheres RETURNING *";
       }
     }
 
@@ -160,6 +157,13 @@ class Query {
 
   public function save(): Model {
     return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
+  }
+
+  public function update(array $fields): Collection {
+    $this->instance->fill($fields, true);
+
+    return new Collection($this->run($this->resolve(true, true)) ?? [])
+    ->map(fn($item) => new ($this->instance::class)($item, true, true), false);
   }
 
   public function create(array $items, bool $ignore = false): null|Model|Collection {

@@ -126,7 +126,7 @@ class Utils {
     return implode(", ", $aux);
   }
 
-  private static function valueToString(null|bool|string|int $value): string {
+  public static function valueToString(null|bool|string|int $value): string {
     if (is_null($value)) {
       return "NULL";
     } else if (is_string($value)) {
@@ -219,7 +219,12 @@ class Utils {
   }
 
   public static function print(mixed $printable) {
-    print(json_encode($printable, JSON_PRETTY_PRINT));
+    if (is_object($printable) && method_exists($printable, "toJson")) {
+      print($printable->toJson());
+    } else {
+      print(json_encode($printable, JSON_PRETTY_PRINT));
+    }
+
     print("\n");
   }
 
