@@ -5,7 +5,7 @@ use Core\Controller;
 use Models\Student;
 use Models\User;
 
-class StudentController extends Controller{
+class StudentController extends Controller {
   public function index() {
     if ($this->user?->isStudent()) {
       return Student::where("id", "!=", $this->user?->student()?->id)->get();
