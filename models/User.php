@@ -1,29 +1,33 @@
 <?php
 namespace Models;
 
+use Core\Collection;
 use Core\Model;
+use Core\Session;
 
 class User extends Model {
   protected $fillable = [
     "name",
-    "lastname",
-    "age",
+    "paternal_lastname",
+    "maternal_lastname",
+    "type",
+    "email",
+    "password",
   ];
 
-  protected $hidden = [
-    "name",
-    "lastname",
-  ];
-
-  protected $appends = [
-    "full_name",
-  ];
-
-  public function getFullnameAttribute() {
-    return $this->name . ($this->lastname ? " $this->lastname" : "");
+  public static function check($credentials) {
+    return static::where("email", $credentials["email"])->where("password", $credentials["password"])->first();
   }
 
-  public function projects() {
-    return Project::where("user_id", $this->id)->get();
+  public function isAdmin(): bool {
+    return $this->type === "admin";
+  }
+
+  public function sessions(): Collection {
+    return $this->has(Session::class, true);
+  }
+
+  public function student(): Student {
+    return $this->has(Student::class);
   }
 }

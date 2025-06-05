@@ -5,8 +5,9 @@ use ArrayAccess;
 use IteratorAggregate;
 use Traversable;
 use ArrayIterator;
+use Countable;
 
-class Collection implements ArrayAccess, IteratorAggregate {
+class Collection implements ArrayAccess, IteratorAggregate, Countable {
   private $items = [];
 
   public function __construct(array $items = []) {
@@ -37,21 +38,61 @@ class Collection implements ArrayAccess, IteratorAggregate {
     return new ArrayIterator($this->items);
   }
 
-  public function toJson() {
-    return json_encode($this->toAssoc(), JSON_PRETTY_PRINT);
+  public function count(): int {
+    return sizeof($this->items);
   }
 
-  public function toAssoc() {
+  public function map(?callable $callback = null, bool $asArray = true ): array|Collection {
+    if ($callback && !$asArray) {
+      return new Collection(
+        array_map($callback, $this->items)
+      );
+    }
+
+    $res = [];
+
+    foreach ($this->items as $item) {
+      $res[] = $callback ? $callback($item) : $item;
+    }
+
+    return $res;
+  }
+
+  public function each(callable $callback) {
+    foreach ($this->items as $item) {
+      $callback($item);
+    }
+  }
+
+  public function push(mixed $item): self {
+    $this->items[] = $item;
+
+    return $this;
+  }
+
+  public function concat(Collection $collection): self {
+    foreach ($collection as $item) {
+      $this->items[] = $item;
+    }
+
+    return $this;
+  }
+
+  public function toJson(bool $ignore = false): string {
+    return json_encode($this->toAssoc($ignore), JSON_PRETTY_PRINT);
+  }
+
+  public function toAssoc(bool $ignore = false): array {
     $arr = [];
 
     foreach($this->items as $item) {
-      $arr[] = $item->toAssoc();
+      $arr[] = $item->toAssoc($ignore);
     }
 
     return $arr;
   }
 
-  public function toArray() {
+  public function toArray(): array {
     $arr = [];
 
     foreach($this->items as $item) {

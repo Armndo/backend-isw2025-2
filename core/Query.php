@@ -1,12 +1,15 @@
 <?php
 namespace Core;
 
+use Exception;
 use PDO;
 use PDOException;
 
 class Query {
-  private $instance;
+  private Model $instance;
+  private ?Collection $collection = null;
   private $wheres = [];
+  private $ors = [];
   private $joins = [];
   private $orders = [];
   private $selects = [ "*" ];
@@ -27,11 +30,18 @@ class Query {
   }
 
   public function where(...$conditions): self {
-    if (in_array(sizeof($conditions), [2, 3]) && array_reduce($conditions, function ($a, $b) { return $a && gettype($b) !== "array"; }, true)) {
+    if (in_array(sizeof($conditions), [2, 3]) && array_reduce($conditions, fn($a, $b) => $a && gettype($b) !== "array", true)) {
       $this->wheres[] = Utils::where($conditions);
-    } else if(sizeof($conditions) === 1) {
+    } else if (sizeof($conditions) === 1) {
       $this->wheres = [...$this->wheres, ...Utils::wheres($conditions[0])];
     }
+
+    return $this;
+  }
+
+  public function orWhere(...$conditions): self {
+    $this->where(...$conditions);
+    $this->ors[] = sizeof($this->wheres) - 1;
 
     return $this;
   }
@@ -39,12 +49,8 @@ class Query {
   public function join(string $table, string $first, string $second): self {
     $this->joins[] = (
       "\"$table\" on " .
-      implode(".", array_map(function($item) {
-        return "\"$item\"";
-      }, explode(".", $first))) . " = " .
-      implode(".", array_map(function($item) {
-        return "\"$item\"";
-      }, explode(".", $second)))
+      implode(".", array_map(fn($item) => "\"$item\"", explode(".", $first))) . " = " .
+      implode(".", array_map(fn($item) => "\"$item\"", explode(".", $second)))
     );
 
     return $this;
@@ -62,73 +68,291 @@ class Query {
     return $this;
   }
 
-  private function resolve($exec = false): string {
+  public function orWhereRaw(string $raw): self {
+    $this->wheres[] = $raw;
+    $this->ors[] = sizeof($this->wheres) - 1;
+
+    return $this;
+  }
+
+  private function resolve(bool $exec = false, bool $update = false, bool $delete = false, bool $count = false): ?string {
     $table = $this->instance->getTable();
     $fields = $this->instance->getFields();
 
     if (!$exec) {
-      $selects = Utils::selects($this->selects);
-      $where = Utils::wheres($this->wheres, true);
+      $selects = Utils::selects($this->selects, $count);
+      $wheres = Utils::wheres($this->wheres, $this->ors, true);
       $orderBy = Utils::orders($this->orders);
       $limit = $this->limit === null ? "" : " LIMIT $this->limit";
       $joins = sizeof($this->joins) === 0 ? "" : " JOIN " . implode(" JOIN ", $this->joins);
 
-      // print_r("SELECT $selects FROM \"$table\"$joins$where$orderBy$limit\n");
-      return "SELECT $selects FROM \"$table\"$joins$where$orderBy$limit";
+      if (getenv("DEBUG")) {
+        print_r("SELECT $selects FROM \"$table\"$joins$wheres$orderBy$limit\n");
+      }
+      
+      if (!getenv("STOP_QUERIES")) {
+        return "SELECT $selects FROM \"$table\"$joins$wheres$orderBy$limit";
+      }
     }
 
     $identifier = $this->instance->getIdentifier();
     $appends = $this->instance->getAppends();
 
-    if (isset($fields[$identifier]) && $this->instance->getStored()) {
+    if (!$delete && ((isset($fields[$identifier]) && $this->instance->getStored() || $update))) {
       $values = Utils::values($fields, $appends, true, $identifier);
-      $id = $fields[$identifier];
+      $id = Utils::valueToString($fields[$identifier] ?? null);
+      $wheres = $update ? Utils::wheres($this->wheres, $this->ors, true) : " WHERE \"$identifier\" = $id";
 
-      if (is_string($id)) {
-        $id = "'$id'";
+      if (getenv("DEBUG")) {
+        print_r("UPDATE \"$table\" SET $values$wheres RETURNING *\n");
       }
-
-      // print_r("UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *\n");
-      return "UPDATE \"$table\" SET $values WHERE \"$identifier\" = $id RETURNING *";
+      
+      if (!getenv("STOP_QUERIES")) {
+        return "UPDATE \"$table\" SET $values$wheres RETURNING *";
+      }
     }
 
-    $values = Utils::values($fields, $appends);
-    $fields = Utils::fields($fields, $appends, $identifier);
+    if ($delete) {
+      $wheres = Utils::wheres($this->wheres, $this->ors, true);
 
-    // print_r("INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *\n");
-    return "INSERT INTO \"$table\" ($fields) VALUES ($values) RETURNING *";
+      if (getenv("DEBUG")) {
+        print_r("DELETE FROM \"$table\"$wheres\n");
+      }
+      
+      if (!getenv("STOP_QUERIES")) {
+        return "DELETE FROM \"$table\"$wheres";
+      }
+    }
+
+    $values = Utils::values($this->collection ? $this->instance->getFillable() : $fields, $appends, collection: $this->collection);
+    $fields = Utils::fields($this->collection ? $this->instance->getFillable() : $fields, $appends, $this->collection);
+
+    if (getenv("DEBUG")) {
+      print_r("INSERT INTO \"$table\" ($fields) VALUES $values RETURNING *\n");
+    }
+    
+    if (!getenv("STOP_QUERIES")) {
+      return "INSERT INTO \"$table\" ($fields) VALUES $values RETURNING *";
+    }
+
+    return null;
   }
 
-  public function find(int | string $id): Model | null {
-    $this->wheres[] = Utils::where([$this->instance->getIdentifier(), $id]);
+  public function find(int|string $id): ?Model {
+    $this->where($this->instance->getIdentifier(), $id);
+    $this->limit = 1;
     $result = $this->run($this->resolve());
 
-    if (sizeof($result) < 1) {
+    if (sizeof($result ?? []) < 1) {
       return null;
     }
 
     return $this->instance->fill($result[0], true, true);
   }
 
-  public function get(string | null $class = null): Collection {
-    return new Collection(
-      array_map(function ($fields) use ($class) {
-        return new ($class ? $class : get_class($this->instance))($fields, true, true);
-      }, $this->run($this->resolve()))
-    );
+  public function get(?string $class = null): Collection {
+    return new Collection($this->run($this->resolve()) ?? [])
+    ->map(fn($item) => new ($class ?? $this->instance::class)($item, true, true), false);
   }
 
-  public function first(string | null $class = null): Model {
+  public function count(): int {
+    return $this->run($this->resolve(count: true))[0]["count"] ?? 0;
+  }
+
+  public function first(?string $class = null): ?Model {
     $this->limit = 1;
 
-    return new ($class ? $class : get_class($this->instance))($this->run($this->resolve())[0], true, true);
+    $object = $this->run($this->resolve());
+
+    return sizeof($object ?? []) > 0 ? new ($class ?? $this->instance::class)($object[0], true, true) : null;
+  }
+
+  private function chainWheres(array $wheres, array $orWheres = []) {
+    foreach ($wheres as $where) {
+      $this->where(...$where);
+    }
+
+    if (sizeof($orWheres) === 1) {
+      $this->where(...$orWheres[0]);
+    } else {
+      foreach ($orWheres as $where) {
+        $this->orWhere(...$where);
+      }
+    }
+  }
+
+  public function exists(array $wheres, array $orWheres = [], bool $return = false): null|bool|Model|Collection {
+    $this->chainWheres($wheres, $orWheres);
+    $count = $this->count();
+
+    if ($return) {
+      return $count > 1 ? $this->get() : $this->first();
+    }
+
+    return $count > 0;
   }
 
   public function save(): Model {
-    return $this->instance->fill($this->run($this->resolve(true), true)[0], true, true);
+    return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
   }
 
-  private function run($sql): array {
+  public function delete(array $wheres = [], array $orWheres = []): bool {
+    if (sizeof($wheres) === 0) {
+      $identifier = $this->instance->getIdentifier();
+      $this->where($identifier, $this->instance->$identifier);
+    } else {
+      $this->chainWheres($wheres, $orWheres);
+    }
+
+    return sizeof($this->run($this->resolve(true, delete: true))) > 0;
+  }
+
+  public function update(array $fields): Collection {
+    $this->instance->fill($fields, true);
+
+    return new Collection($this->run($this->resolve(true, true)) ?? [])
+    ->map(fn($item) => new ($this->instance::class)($item, true, true), false);
+  }
+
+  public function create(array $items, bool $ignore = false): null|Model|Collection {
+    if (sizeof($items) === 0) {
+      return null;
+    }
+
+    if (is_array($items[0])) {
+      $this->collection = new Collection($items)
+      ->map(fn($item) => new ($this->instance::class)($item, $ignore), false);
+
+      return new Collection($this->run($this->resolve(true)) ?? [])
+      ->map(fn($item) => new ($this->instance::class)($item, true, true), false);
+    }
+
+    $this->instance->fill($items);
+    return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
+  }
+
+  public function attach(string $class, int|string|array $ids, ?string $table = null) {
+    $instance = $this->instance;
+    $instance_key = Utils::getKey($instance::class);
+    $instance_id = $instance->{$instance->getIdentifier()};
+    $class_key = Utils::getKey($class);
+
+    $model = new Model();
+    $model->setTable($table ?? Utils::getPivot([$instance::class, $class]));
+
+    try {
+      if (is_string($ids) || is_numeric($ids)) {
+        if (Model::exists([
+          [$instance_key, $instance_id],
+          [$class_key, $ids],
+        ], model: $model)) {
+          return ;
+        }
+
+        $model->fill([
+          $instance_key => $instance_id,
+          $class_key => $ids,
+        ], true)
+        ->save();
+      }
+
+      if (sizeof($ids) === 0) {
+        return ;
+      }
+
+      $model->setFillable(array_unique([
+        $instance_key,
+        $class_key,
+        ...array_keys(Utils::flatten(
+          array_map(fn($value) => is_array($value) ? $value : [], array_values($ids))
+        )),
+      ]));
+
+      $isString = false;
+
+      foreach ($ids as $key => $value) {
+        if (!is_array($value) && is_string($value)) {
+          $isString = true;
+          break;
+        }
+      }
+
+      if (!Model::exists(
+        [[$instance_key, $instance_id]],
+        array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
+        model: $model
+      )) {
+        Model::create(
+          array_map(fn($key, $value) => [
+            $instance_key => $instance_id,
+            $class_key => (is_array($value) ? ($isString ? "$key" : $key) : $value),
+            ...(is_array($value) ? $value : []),
+          ], array_keys($ids), array_values($ids)),
+          $model
+        );
+      }
+    } catch (Exception $e) {
+			print($e->getMessage() . "\n");
+    }
+  }
+
+  public function detach(string $class, int|string|array $ids = [], ?string $table = null) {
+    $instance = $this->instance;
+    $instance_key = Utils::getKey($instance::class);
+    $instance_id = $instance->{$instance->getIdentifier()};
+    $class_key = Utils::getKey($class);
+
+    $model = new Model();
+    $model->setTable($table ?? Utils::getPivot([$instance::class, $class]));
+
+    try {
+      if (is_string($ids) || is_numeric($ids)) {
+        if (!Model::exists([
+          [$instance_key, $instance_id],
+          [$class_key, $ids],
+        ], model: $model)) {
+          return ;
+        }
+
+        return $model->delete([
+          [$instance_key, $instance_id],
+          [$class_key, $ids],
+        ]);
+      }
+
+      if (Model::exists(
+        [[$instance_key, $instance_id]],
+        [...(
+          !is_array($ids[0] ?? null) ?
+          array_map(fn($item) => [$class_key, $item], $ids) :
+          array_merge(...array_map(fn($item) => array_map(fn($key, $value) => [$key, $value], array_keys($item), array_values($item)), $ids))
+        )],
+        model: $model
+      )) {
+        $model->delete(
+          [[$instance_key, $instance_id]],
+          [...(
+            !is_array($ids[0] ?? null) ?
+            array_map(fn($item) => [$class_key, $item], $ids) :
+            array_merge(...array_map(fn($item) => array_map(fn($key, $value) => [$key, $value], array_keys($item), array_values($item)), $ids))
+          )]
+        );
+      }
+    } catch (Exception $e) {
+			print($e->getMessage() . "\n");
+    }
+  }
+
+  public function sync(string $class, array $ids = [], ?string $table = null) {
+    $this->detach($class, table: $table);
+    $this->attach($class, $ids, $table);
+  }
+
+  private function run(?string $sql): ?array {
+    if (!$sql) {
+      return null;
+    }
+
     try {
       $conn = (new Connection())->getConnection();
       $query = $conn->prepare($sql);
