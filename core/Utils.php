@@ -1,9 +1,6 @@
 <?php
 namespace Core;
 
-use PDO;
-use PDOException;
-
 class Utils {
   public static function where($condition, $toString = false): array | string {
     $field = null;
@@ -29,9 +26,7 @@ class Utils {
       $value = $value ? "TRUE" : "FALSE";
     }
 
-    return $toString ? implode(".", array_map(function($item) {
-        return "\"$item\"";
-      }, explode(".", $field))) . " $operator $value" : [
+    return $toString ? implode(".", array_map(fn($item) => "\"$item\"", explode(".", $field))) . " $operator $value" : [
       "field" => $field,
       "operator" => $operator,
       "value" => $value,
@@ -46,9 +41,7 @@ class Utils {
     }
 
     foreach ($fields as $field) {
-      $selects[] = $field !== "*" ? implode(".", array_map(function($item) {
-        return $item === "*" ? $item : "\"$item\"";
-      }, explode(".", $field))) : $field;
+      $selects[] = $field !== "*" ? implode(".", array_map(fn($item) => $item === "*" ? $item : "\"$item\"", explode(".", $field))) : $field;
     }
 
     $res = implode(", ", $selects);
@@ -56,7 +49,9 @@ class Utils {
     return $count ? "count($res)" : $res;
   }
 
-  public static function wheres(array $conditions, array $ors = [], bool $toString = false): array|string {
+  public static function wheres(array $conditions, array $or = [], bool $toString = false): array|string {
+    $ors = [...$or];
+
     if (sizeof($conditions) === 0) {
       return $toString ? "" : [];
     }
@@ -76,14 +71,39 @@ class Utils {
     }
 
     $string = "";
+    $flag = false;
 
     foreach ($wheres as $index => $where) {
+      if ($index === 0 && !$flag && in_array($index, $ors)) {
+        $flag = true;
+        $string .= "(";
+        array_splice($ors, array_search($index, $ors), 1);
+      }
+
+      if ($flag && !in_array($index, $ors)) {
+        $flag = false;
+        $string .= ")";
+      }
+
       if ($index > 0) {
-        $string .= in_array($index, $ors) ? " OR " : " AND ";
+        if (sizeof($ors) > 1 && in_array($index + 1, $ors) && !$flag && in_array($index, $ors)) {
+          $flag = true;
+          $string .= " AND (";
+        } else {
+          $string .= in_array($index, $ors) ? " OR " : " AND ";
+        }
+      }
+
+      if (in_array($index, $ors)) {
+        array_splice($ors, array_search($index, $ors), 1);
       }
 
       $string .= $where;
-    } 
+    }
+
+    if ($flag) {
+      $string .= ")";
+    }
 
     return " WHERE $string";
   }
@@ -122,9 +142,11 @@ class Utils {
     $aux = [];
 
     if ($collection) {
-      $aux = $collection->map(function ($item) use ($fields) {
+      $aux = $collection->map(function($item) use ($fields) {
+        $tmp = [];
+
         foreach ($fields as $field) {
-          $tmp[] = static::valueToString($item[$field]);
+          $tmp[] = static::valueToString($item[$field] ?? null);
         }
 
         return "(" . implode(", ", $tmp) . ")";
@@ -142,7 +164,11 @@ class Utils {
       $aux[] = !$update ? $value : "\"$field\" = $value";
     }
 
-    return "(" . implode(", ", $aux) . ")";
+    if (!$update) {
+      return "(" . implode(", ", $aux) . ")";
+    }
+
+    return implode(", ", $aux);
   }
 
   public static function orders($orders = []) {
@@ -150,8 +176,9 @@ class Utils {
       return "";
     }
 
-    return " ORDER BY " . implode(", ", array_map(function ($order) {
+    return " ORDER BY " . implode(", ", array_map(function($order) {
       [$field, $direction] = $order;
+
       return "\"$field\" $direction";
     }, $orders));
   }
@@ -179,5 +206,25 @@ class Utils {
     sort($tables);
 
     return implode("_", $tables);
+  }
+
+  public static function flatten(array $arr): array {
+    $res = [];
+
+    foreach ($arr as $item) {
+      $res = array_merge($res, $item);
+    }
+
+    return $res;
+  }
+
+  public static function print(mixed $printable) {
+    print(json_encode($printable, JSON_PRETTY_PRINT));
+    print("\n");
+  }
+
+  public static function dump(...$printable) {
+    var_dump(...$printable);
+    print("\n");
   }
 }

@@ -78,15 +78,15 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable {
     return $this;
   }
 
-  public function toJson(): string {
-    return json_encode($this->toAssoc(), JSON_PRETTY_PRINT);
+  public function toJson(bool $ignore = false): string {
+    return json_encode($this->toAssoc($ignore), JSON_PRETTY_PRINT);
   }
 
-  public function toAssoc(): array {
+  public function toAssoc(bool $ignore = false): array {
     $arr = [];
 
     foreach($this->items as $item) {
-      $arr[] = $item->toAssoc();
+      $arr[] = $item->toAssoc($ignore);
     }
 
     return $arr;

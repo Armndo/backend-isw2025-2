@@ -30,9 +30,9 @@ class Query {
   }
 
   public function where(...$conditions): self {
-    if (in_array(sizeof($conditions), [2, 3]) && array_reduce($conditions, function ($a, $b) { return $a && gettype($b) !== "array"; }, true)) {
+    if (in_array(sizeof($conditions), [2, 3]) && array_reduce($conditions, fn($a, $b) => $a && gettype($b) !== "array", true)) {
       $this->wheres[] = Utils::where($conditions);
-    } else if(sizeof($conditions) === 1) {
+    } else if (sizeof($conditions) === 1) {
       $this->wheres = [...$this->wheres, ...Utils::wheres($conditions[0])];
     }
 
@@ -49,12 +49,8 @@ class Query {
   public function join(string $table, string $first, string $second): self {
     $this->joins[] = (
       "\"$table\" on " .
-      implode(".", array_map(function($item) {
-        return "\"$item\"";
-      }, explode(".", $first))) . " = " .
-      implode(".", array_map(function($item) {
-        return "\"$item\"";
-      }, explode(".", $second)))
+      implode(".", array_map(fn($item) => "\"$item\"", explode(".", $first))) . " = " .
+      implode(".", array_map(fn($item) => "\"$item\"", explode(".", $second)))
     );
 
     return $this;
@@ -147,9 +143,7 @@ class Query {
 
   public function get(?string $class = null): Collection {
     return new Collection($this->run($this->resolve()) ?? [])
-    ->map(function($item) use ($class) {
-      return new ($class ?? $this->instance::class)($item, true, true);
-    }, false);
+    ->map(fn($item) => new ($class ?? $this->instance::class)($item, true, true), false);
   }
 
   public function count(): int {
@@ -168,29 +162,34 @@ class Query {
     return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
   }
 
-  public function create(array $items): null|Model|Collection {
+  public function create(array $items, bool $ignore = false): null|Model|Collection {
     if (sizeof($items) === 0) {
       return null;
     }
 
     if (is_array($items[0])) {
-      $this->collection = new Collection($items)->map(function($item) {
-        return new ($this->instance::class)($item);
-      }, false);
+      $this->collection = new Collection($items)
+      ->map(fn($item) => new ($this->instance::class)($item, $ignore), false);
 
       return new Collection($this->run($this->resolve(true)) ?? [])
-      ->map(function($item) {
-        return new ($this->instance::class)($item, true, true);
-      }, false);
+      ->map(fn($item) => new ($this->instance::class)($item, true, true), false);
     }
 
     $this->instance->fill($items);
     return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
   }
 
-  public function exists(array $conditions, bool $return = false): null|bool|Model|Collection {
-    foreach ($conditions as $condition) {
-      $this->where(...$condition);
+  public function exists(array $wheres, array $orWheres = [], bool $return = false): null|bool|Model|Collection {
+    foreach ($wheres as $where) {
+      $this->where(...$where);
+    }
+
+    if (sizeof($orWheres) === 1) {
+      $this->where(...$orWheres[0]);
+    } else {
+      foreach ($orWheres as $where) {
+        $this->orWhere(...$where);
+      }
     }
 
     $count = $this->count();
@@ -227,29 +226,31 @@ class Query {
         ->save();
       }
 
-      if (!is_array($ids)) {
+      if (!is_array($ids) || sizeof($ids) === 0) {
         return ;
       }
 
-      foreach ($ids as $id) {
-        if (
-          !Model::exists([
-            ...(!is_array($id) ? [[$class_key, $id]]
-              : array_map(function($key, $value) {
-                return [$key, $value];
-              }, array_keys($id), array_values($id))
-            ),
-            [$instance_key, $instance_id],
-          ], model: $model)
-        ) {
-          $model->fill([
-            ...(!is_array($id) ? [$class_key => $id] : $id),
-            $instance_key => $instance_id,
-          ], true)
-          ->save();
+      $model->setFillable(array_unique([
+        $instance_key,
+        $class_key,
+        ...(is_array($ids[0]) ? array_keys(Utils::flatten($ids)) : [])
+      ]));
 
-          continue;
-        }
+      if (!Model::exists(
+        [[$instance_key, $instance_id]],
+        [...(
+          !is_array($ids[0]) ?
+          array_map(fn($item) => [$class_key, $item], $ids) :
+          array_merge(...array_map(fn($item) => array_map(fn($key, $value) => [$key, $value], array_keys($item), array_values($item)), $ids))
+        )],
+        model: $model
+      )) {
+        Model::create(
+          !is_array($ids[0]) ?
+          array_map(fn($item) => [$instance_key => $instance_id, $class_key => $item], $ids) :
+          array_map(fn($item) => array_merge([$instance_key => $instance_id], $item), $ids),
+          $model
+        );
       }
     } catch (Exception $e) {
 			print($e->getMessage() . "\n");

@@ -15,7 +15,7 @@ class Model extends ArrayObject {
   protected $appends = [];
   protected $stored = false;
 
-  public function __construct(array | null $fields = [], bool $ignoreFillable = false, bool $stored = false) {
+  public function __construct(?array $fields = [], bool $ignoreFillable = false, bool $stored = false) {
     if ($fields === null) {
       return ;
     }
@@ -61,6 +61,10 @@ class Model extends ArrayObject {
 
   public function getFillable(): array {
     return $this->fillable;
+  }
+
+  public function setFillable(array $fillable) {
+    $this->fillable = $fillable;
   }
 
   public function getFields(): array {
