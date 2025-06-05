@@ -23,6 +23,10 @@ class User extends Model {
     return $this->type === "admin";
   }
 
+  public function isStudent(): bool {
+    return $this->type === "student";
+  }
+
   public function sessions(): Collection {
     return $this->has(Session::class, true);
   }
