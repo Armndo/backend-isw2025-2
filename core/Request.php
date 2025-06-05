@@ -78,14 +78,14 @@ class Request extends ArrayObject {
   }
 
   public function exists(string $attribute) {
-    return isset($this->attributes[$attribute]);
+    return in_array($attribute, $this->attributes);
   }
 
   public function only(array $attributes) {
     $res = [];
 
     foreach ($attributes as $attribute) {
-      if (isset($this->attributes[$attribute])) {
+      if (in_array($attribute, array_keys($this->attributes))) {
         $res[$attribute] = $this->attributes[$attribute];
       }
     }

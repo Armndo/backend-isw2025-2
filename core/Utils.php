@@ -156,7 +156,7 @@ class Utils {
     }
 
     foreach($fields as $field => $value) {
-      if (is_null($value) || ($field === $identifier && !is_string($field)) || in_array($field, $appends)) {
+      if (!$update && (is_null($value) || ($field === $identifier && !is_string($field)) || in_array($field, $appends))) {
         continue;
       }
 
