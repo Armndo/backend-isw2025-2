@@ -263,22 +263,31 @@ class Query {
       $model->setFillable(array_unique([
         $instance_key,
         $class_key,
-        ...(is_array($ids[0]) ? array_keys(Utils::flatten($ids)) : [])
+        ...array_keys(Utils::flatten(
+          array_map(fn($value) => is_array($value) ? $value : [], array_values($ids))
+        )),
       ]));
+
+      $isString = false;
+
+      foreach ($ids as $key => $value) {
+        if (!is_array($value) && is_string($value)) {
+          $isString = true;
+          break;
+        }
+      }
 
       if (!Model::exists(
         [[$instance_key, $instance_id]],
-        [...(
-          !is_array($ids[0]) ?
-          array_map(fn($item) => [$class_key, $item], $ids) :
-          array_merge(...array_map(fn($item) => array_map(fn($key, $value) => [$key, $value], array_keys($item), array_values($item)), $ids))
-        )],
+        array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
         model: $model
       )) {
         Model::create(
-          !is_array($ids[0]) ?
-          array_map(fn($item) => [$instance_key => $instance_id, $class_key => $item], $ids) :
-          array_map(fn($item) => array_merge([$instance_key => $instance_id], $item), $ids),
+          array_map(fn($key, $value) => [
+            $instance_key => $instance_id,
+            $class_key => (is_array($value) ? ($isString ? "$key" : $key) : $value),
+            ...(is_array($value) ? $value : []),
+          ], array_keys($ids), array_values($ids)),
           $model
         );
       }
