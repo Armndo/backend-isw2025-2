@@ -10,6 +10,7 @@ class Model extends ArrayObject {
 
   protected $table;
   protected $identifier;
+  protected $lastIdentifier = null;
   protected $fillable = [];
   protected $hidden = [];
   protected $appends = [];
@@ -31,6 +32,10 @@ class Model extends ArrayObject {
 
     $this->fill($fields, $ignoreFillable);
     $this->stored = $stored;
+
+    if ($stored) {
+      $this->lastIdentifier = $this->{$this->identifier};
+    }
   }
 
   public function __set($name, $val) {
@@ -49,6 +54,10 @@ class Model extends ArrayObject {
 
   public function getIdentifier() {
     return $this->identifier;
+  }
+
+  public function getLastIdentifier() {
+    return $this->lastIdentifier;
   }
 
   public function getTable() {
@@ -118,6 +127,10 @@ class Model extends ArrayObject {
       if ($name = $this->getFunction($append)) {
         $this->{$append} = $this->{$name}();
       }
+    }
+
+    if ($stored) {
+      $this->lastIdentifier = $this->{$this->identifier};
     }
 
     return $this;

@@ -100,7 +100,7 @@ class Query {
 
     if (!$delete && ((isset($fields[$identifier]) && $this->instance->getStored() || $update))) {
       $values = Utils::values($fields, $appends, true, $identifier);
-      $id = Utils::valueToString($fields[$identifier] ?? null);
+      $id = Utils::valueToString($this->instance->getLastIdentifier());
       $wheres = $update ? Utils::wheres($this->wheres, $this->ors, true) : " WHERE \"$identifier\" = $id";
 
       if (getenv("DEBUG")) {
