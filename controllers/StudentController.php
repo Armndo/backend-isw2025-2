@@ -2,7 +2,9 @@
 namespace Controllers;
 
 use Core\Controller;
+use Models\Group;
 use Models\Student;
+use Models\Subject;
 use Models\User;
 
 class StudentController extends Controller {
@@ -85,6 +87,41 @@ class StudentController extends Controller {
       "email",
       "password"
     ]))->save();
+
+    return "Ok";
+  }
+
+  public function enroll($id) {
+    if (!$this->user?->isAdmin() && $this->user?->student()?->id !== $id) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
+    $student = Student::find($id);
+
+    if (!$student) {
+      http_response_code(400);
+      return ["error" => true, "message" => "Student doesn't exist."];
+    }
+
+    $group = Group::find($this->request->group_id);
+
+    if (!$group) {
+      http_response_code(400);
+      return ["error" => true, "message" => "Group doesn't exist."];
+    }
+
+    $subject = Subject::find($this->request->subject_id);
+
+    if (!$subject) {
+      http_response_code(400);
+      return ["error" => true, "message" => "Subject doesn't exist."];
+    }
+
+    if (!$student->attach(Subject::class, [$subject->id => ["group_id" => $group->id]], "enrolled", ["group_id"])) {
+      http_response_code(400);
+      return ["error" => true, "message" => "Couldn't enroll."];
+    }
 
     return "Ok";
   }

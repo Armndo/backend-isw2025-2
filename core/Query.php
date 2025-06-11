@@ -245,7 +245,7 @@ class Query {
     return [$ids, false];
   }
 
-  public function attach(string $class, int|string|array $ids, ?string $table = null, array $asForeign = []) {
+  public function attach(string $class, int|string|array $ids, ?string $table = null, array $asForeign = []): bool {
     $instance = $this->instance;
     $instance_key = Utils::getKey($instance::class);
     $instance_id = $instance->{$instance->getIdentifier()};
@@ -254,56 +254,58 @@ class Query {
     $model = new Model();
     $model->setTable($table ?? Utils::getPivot([$instance::class, $class]));
 
-    try {
-      if (is_string($ids) || is_numeric($ids)) {
-        if (Model::exists([
-          [$instance_key, $instance_id],
-          [$class_key, $ids],
-        ], model: $model)) {
-          return ;
-        }
+    if (is_string($ids) || is_numeric($ids)) {
+      if (Model::exists([
+        [$instance_key, $instance_id],
+        [$class_key, $ids],
+      ], model: $model)) {
+        return false;
+      }
 
-        $model->fill([
+      $model->fill([
+        $instance_key => $instance_id,
+        $class_key => $ids,
+      ], true)
+      ->save();
+
+      return true;
+    }
+
+    if (sizeof($ids) === 0) {
+      return false;
+    }
+
+    [$ids, $isString] = $this->compact($ids, $asForeign);
+
+    $model->setFillable(array_unique([
+      $instance_key,
+      $class_key,
+      ...array_keys(Utils::flatten(
+        array_map(fn($value) => is_array($value) ? $value : [], array_values($ids))
+      )),
+    ]));
+
+    if (!Model::exists(
+      array_merge([[$instance_key, $instance_id]], ...array_map(fn($item) => is_array($item) ? array_map(fn($key, $value) => in_array($key, $asForeign) ? [$key, $value] : [], array_keys($item), array_values($item)) : [], $ids)),
+      array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
+      model: $model
+    )) {
+      Model::create(
+        array_map(fn($key, $value) => [
           $instance_key => $instance_id,
-          $class_key => $ids,
-        ], true)
-        ->save();
-      }
+          $class_key => (is_array($value) ? ($isString ? "$key" : $key) : $value),
+          ...(is_array($value) ? $value : []),
+        ], array_keys($ids), array_values($ids)),
+        $model
+      );
 
-      if (sizeof($ids) === 0) {
-        return ;
-      }
-
-      [$ids, $isString] = $this->compact($ids, $asForeign);
-
-      $model->setFillable(array_unique([
-        $instance_key,
-        $class_key,
-        ...array_keys(Utils::flatten(
-          array_map(fn($value) => is_array($value) ? $value : [], array_values($ids))
-        )),
-      ]));
-
-      if (!Model::exists(
-        array_merge([[$instance_key, $instance_id]], ...array_map(fn($item) => is_array($item) ? array_map(fn($key, $value) => in_array($key, $asForeign) ? [$key, $value] : [], array_keys($item), array_values($item)) : [], $ids)),
-        array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
-        model: $model
-      )) {
-        Model::create(
-          array_map(fn($key, $value) => [
-            $instance_key => $instance_id,
-            $class_key => (is_array($value) ? ($isString ? "$key" : $key) : $value),
-            ...(is_array($value) ? $value : []),
-          ], array_keys($ids), array_values($ids)),
-          $model
-        );
-      }
-    } catch (Exception $e) {
-			print($e->getMessage() . "\n");
+      return true;
     }
+    
+    return false;
   }
 
-  public function detach(string $class, int|string|array $ids = [], ?string $table = null, array $asForeign = []) {
+  public function detach(string $class, int|string|array $ids = [], ?string $table = null, array $asForeign = []): bool {
     $instance = $this->instance;
     $instance_key = Utils::getKey($instance::class);
     $instance_id = $instance->{$instance->getIdentifier()};
@@ -312,41 +314,39 @@ class Query {
     $model = new Model();
     $model->setTable($table ?? Utils::getPivot([$instance::class, $class]));
 
-    try {
-      if (is_string($ids) || is_numeric($ids)) {
-        if (!Model::exists([
-          [$instance_key, $instance_id],
-          [$class_key, $ids],
-        ], model: $model)) {
-          return ;
-        }
-
-        return $model->delete([
-          [$instance_key, $instance_id],
-          [$class_key, $ids],
-        ]);
+    if (is_string($ids) || is_numeric($ids)) {
+      if (!Model::exists([
+        [$instance_key, $instance_id],
+        [$class_key, $ids],
+      ], model: $model)) {
+        return false;
       }
 
-      [$ids, $isString] = $this->compact($ids, $asForeign);
+      return $model->delete([
+        [$instance_key, $instance_id],
+        [$class_key, $ids],
+      ]);
+    }
 
-      if (Model::exists(
+    [$ids, $isString] = $this->compact($ids, $asForeign);
+
+    if (Model::exists(
+      array_merge([[$instance_key, $instance_id]], ...array_map(fn($item) => is_array($item) ? array_map(fn($key, $value) => in_array($key, $asForeign) ? [$key, $value] : [], array_keys($item), array_values($item)) : [], $ids)),
+      array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
+      model: $model
+    )) {
+      return $model->delete(
         array_merge([[$instance_key, $instance_id]], ...array_map(fn($item) => is_array($item) ? array_map(fn($key, $value) => in_array($key, $asForeign) ? [$key, $value] : [], array_keys($item), array_values($item)) : [], $ids)),
         array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
-        model: $model
-      )) {
-        $model->delete(
-          array_merge([[$instance_key, $instance_id]], ...array_map(fn($item) => is_array($item) ? array_map(fn($key, $value) => in_array($key, $asForeign) ? [$key, $value] : [], array_keys($item), array_values($item)) : [], $ids)),
-          array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
-        );
-      }
-    } catch (Exception $e) {
-			print($e->getMessage() . "\n");
+      );
     }
+
+    return false;
   }
 
-  public function sync(string $class, int|string|array $ids = [], ?string $table = null) {
+  public function sync(string $class, int|string|array $ids = [], ?string $table = null): bool {
     $this->detach($class, table: $table);
-    $this->attach($class, $ids, $table);
+    return $this->attach($class, $ids, $table);
   }
 
   private function run(?string $sql): ?array {

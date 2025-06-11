@@ -51,6 +51,7 @@ Router::get("/students", [StudentController::class, "index"]);
 Router::post("/students", [StudentController::class, "store"]);
 Router::get("/students/{id}", [StudentController::class, "view"]);
 Router::post("/students/{id}", [StudentController::class, "update"]);
+Router::post("/students/{id}/enroll", [StudentController::class, "enroll"]);
 
 Router::get("/teachers", [TeacherController::class, "index"]);
 Router::post("/teachers", [TeacherController::class, "store"]);
