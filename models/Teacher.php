@@ -1,32 +1,28 @@
 <?php
 namespace Models;
 
+use Core\Collection;
 use Core\Model;
 
-class Teacher extends Model
-{
-    protected $fillable=[
-        "id",
-        "name",
-        "paternal_lastname",//Apellido paterno
-        "maternal_lastname",//Apellido Materno
-        "email",
-    ];
-
-
-protected $hidden = [
+class Teacher extends Model {
+  protected $fillable = [
     "id",
-    "name",
-    "paternal_lastname",
-    "maternal_lastname",
-];
+    "user_id",
+  ];
 
-protected $appends = [
-    "full_name",
-];
+  protected $hidden = [
+    "user_id",
+  ];
 
-public function getFullnameAttribute() {
-    return $this->name . " $this->paternal_lastname" .
-    ($this->maternal_lastname ? " $this->maternal_lastname" : "");
-}
+  public function user(): User {
+    return $this->belongs(User::class);
+  }
+
+  public function subjects(): Collection {
+    return $this->belongs(Subject::class, true, "taught");
+  }
+
+  public function groups(): Collection {
+    return $this->belongs(Group::class, true, "taught");
+  }
 }
