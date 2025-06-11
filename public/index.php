@@ -46,6 +46,7 @@ Router::post("/projects/{id}", [ProjectController::class, "update"]);
 
 Router::post("/login", [UserController::class, "login"]);
 Router::post("/logout", [UserController::class, "logout"]);
+Router::post("/logged", [UserController::class, "logged"]);
 
 Router::get("/students", [StudentController::class, "index"]);
 Router::post("/students", [StudentController::class, "store"]);

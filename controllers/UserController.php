@@ -31,4 +31,13 @@ class UserController extends Controller {
 
     return "Ok";
   }
+
+  public function logged() {
+    if (!$this->session) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
+    return "Ok";
+  }
 }
