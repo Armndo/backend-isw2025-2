@@ -42,6 +42,20 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable {
     return sizeof($this->items);
   }
 
+  public function unique(): self {
+    $items = [];
+
+    foreach ($this->items as $item) {
+      if (!in_array($item, $items)) {
+        $items[] = $item;
+      }
+    }
+
+    $this->items = $items;
+
+    return $this;
+  }
+
   public function map(?callable $callback = null, bool $asArray = true ): array|Collection {
     if ($callback && !$asArray) {
       return new Collection(
