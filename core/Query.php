@@ -231,7 +231,21 @@ class Query {
     return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
   }
 
-  public function attach(string $class, int|string|array $ids, ?string $table = null) {
+  private function compact(array $ids, array $asForeign): array {
+    foreach ($ids as $key => $value) {
+      if (!empty($asForeign)) {
+        return [[$key => $value], !is_array($value) && is_string($value)];
+      }
+
+      if (!is_array($value) && is_string($value)) {
+        return [$ids, true];
+      }
+    }
+
+    return [$ids, false];
+  }
+
+  public function attach(string $class, int|string|array $ids, ?string $table = null, array $asForeign = []) {
     $instance = $this->instance;
     $instance_key = Utils::getKey($instance::class);
     $instance_id = $instance->{$instance->getIdentifier()};
@@ -260,6 +274,8 @@ class Query {
         return ;
       }
 
+      [$ids, $isString] = $this->compact($ids, $asForeign);
+
       $model->setFillable(array_unique([
         $instance_key,
         $class_key,
@@ -268,17 +284,8 @@ class Query {
         )),
       ]));
 
-      $isString = false;
-
-      foreach ($ids as $key => $value) {
-        if (!is_array($value) && is_string($value)) {
-          $isString = true;
-          break;
-        }
-      }
-
       if (!Model::exists(
-        [[$instance_key, $instance_id]],
+        array_merge([[$instance_key, $instance_id]], ...array_map(fn($item) => is_array($item) ? array_map(fn($key, $value) => in_array($key, $asForeign) ? [$key, $value] : [], array_keys($item), array_values($item)) : [], $ids)),
         array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
         model: $model
       )) {
@@ -296,7 +303,7 @@ class Query {
     }
   }
 
-  public function detach(string $class, int|string|array $ids = [], ?string $table = null) {
+  public function detach(string $class, int|string|array $ids = [], ?string $table = null, array $asForeign = []) {
     $instance = $this->instance;
     $instance_key = Utils::getKey($instance::class);
     $instance_id = $instance->{$instance->getIdentifier()};
@@ -320,22 +327,16 @@ class Query {
         ]);
       }
 
+      [$ids, $isString] = $this->compact($ids, $asForeign);
+
       if (Model::exists(
-        [[$instance_key, $instance_id]],
-        [...(
-          !is_array($ids[0] ?? null) ?
-          array_map(fn($item) => [$class_key, $item], $ids) :
-          array_merge(...array_map(fn($item) => array_map(fn($key, $value) => [$key, $value], array_keys($item), array_values($item)), $ids))
-        )],
+        array_merge([[$instance_key, $instance_id]], ...array_map(fn($item) => is_array($item) ? array_map(fn($key, $value) => in_array($key, $asForeign) ? [$key, $value] : [], array_keys($item), array_values($item)) : [], $ids)),
+        array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
         model: $model
       )) {
         $model->delete(
-          [[$instance_key, $instance_id]],
-          [...(
-            !is_array($ids[0] ?? null) ?
-            array_map(fn($item) => [$class_key, $item], $ids) :
-            array_merge(...array_map(fn($item) => array_map(fn($key, $value) => [$key, $value], array_keys($item), array_values($item)), $ids))
-          )]
+          array_merge([[$instance_key, $instance_id]], ...array_map(fn($item) => is_array($item) ? array_map(fn($key, $value) => in_array($key, $asForeign) ? [$key, $value] : [], array_keys($item), array_values($item)) : [], $ids)),
+          array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
         );
       }
     } catch (Exception $e) {
@@ -343,7 +344,7 @@ class Query {
     }
   }
 
-  public function sync(string $class, array $ids = [], ?string $table = null) {
+  public function sync(string $class, int|string|array $ids = [], ?string $table = null) {
     $this->detach($class, table: $table);
     $this->attach($class, $ids, $table);
   }

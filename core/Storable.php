@@ -18,15 +18,15 @@ trait Storable {
     return (new Query($this))->delete($wheres, $orWheres);
   }
 
-  public function attach(string $class, int|string|array $ids, ?string $table = null) {
-    (new Query($this))->attach($class, $ids, $table);
+  public function attach(string $class, int|string|array $ids, ?string $table = null, array $asForeign = []) {
+    (new Query($this))->attach($class, $ids, $table, $asForeign);
   }
 
-  public function detach(string $class, int|string|array $ids = [], ?string $table = null) {
-    (new Query($this))->detach($class, $ids, $table);
+  public function detach(string $class, int|string|array $ids = [], ?string $table = null, array $asForeign = []) {
+    (new Query($this))->detach($class, $ids, $table, $asForeign);
   }
 
-  public function sync(string $class, array $ids = [], ?string $table = null) {
+  public function sync(string $class, int|string|array $ids = [], ?string $table = null) {
     (new Query($this))->sync($class, $ids, $table);
   }
 }
