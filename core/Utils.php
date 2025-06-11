@@ -156,7 +156,7 @@ class Utils {
     }
 
     foreach($fields as $field => $value) {
-      if (is_null($value) || ($field === $identifier && !is_string($field)) || in_array($field, $appends)) {
+      if (!$update && (is_null($value) || ($field === $identifier && !is_string($field)) || in_array($field, $appends))) {
         continue;
       }
 
@@ -218,22 +218,24 @@ class Utils {
     return $res;
   }
 
-  public static function print(mixed $printable) {
-    if (is_object($printable) && method_exists($printable, "toJson")) {
-      print($printable->toJson());
-    } else {
-      print(json_encode($printable, JSON_PRETTY_PRINT));
+  public static function print(...$printables) {
+    foreach ($printables as $printable) {
+      if (is_object($printable) && method_exists($printable, "toJson")) {
+        print($printable->toJson());
+      } else {
+        print(json_encode($printable, JSON_PRETTY_PRINT));
+      }
+  
+      print("\n");
     }
-
-    print("\n");
   }
 
-  public static function dump(...$printable) {
-    var_dump(...$printable);
+  public static function dump(...$printables) {
+    var_dump(...$printables);
   }
 
-  public static function dd(...$printable) {
-    static::dump(...$printable);
+  public static function dd(...$printables) {
+    static::dump(...$printables);
     exit();
   }
 }

@@ -64,7 +64,7 @@ CREATE TABLE subjects (
   PRIMARY KEY(id)
 );
 
-CREATE TABLE inscribed (
+CREATE TABLE enrolled (
   student_id varchar(10) NOT NULL,
   group_id int NOT NULL,
   subject_id int NOT NULL,

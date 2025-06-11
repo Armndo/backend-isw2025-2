@@ -6,44 +6,62 @@ use Models\Subject;
 
 class SubjectController extends Controller {
   public function index() {
-    return Subject::get()->toJson();
+    if (!$this->session) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
+    return Subject::get();
   }
 
   public function view($id) {
+    if (!$this->session) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
     $subject = Subject::find(+$id);
 
     if (!$subject) {
       http_response_code(400);
-      print("invalid request");
-      exit();
+      return ["error" => true, "message" => "Subject doesn't exist."];
     }
 
-    return $subject->toJson();
+    return $subject;
   }
 
   public function store() {
-    $subject = new Subject($this->request->only([
+    if (!$this->user?->isAdmin()) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
+    new Subject($this->request->only([
       "name",
       "major_id",
-    ]));
+    ]))->save();
 
-    return $subject->save();
+    return "Ok";
   }
 
   public function update($id) {
+    if (!$this->user?->isAdmin()) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
     $subject = Subject::find(+$id);
 
     if (!$subject) {
       http_response_code(400);
-      print("invalid request");
-      exit();
+      return ["error" => true, "message" => "Subject doesn't exist."];
     }
 
     $subject->fill($this->request->only([
       "name",
       "major_id",
-    ]));
+    ]))->save();
 
-    return $subject->save();
+    return "Ok";
   }
 }
