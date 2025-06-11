@@ -151,7 +151,7 @@ class Query {
   }
 
   public function get(?string $class = null): Collection {
-    return new Collection($this->run($this->resolve()) ?? [])
+    return (new Collection($this->run($this->resolve()) ?? []))
     ->map(fn($item) => new ($class ?? $this->instance::class)($item, true, true), false);
   }
 
@@ -210,7 +210,7 @@ class Query {
   public function update(array $fields): Collection {
     $this->instance->fill($fields, true);
 
-    return new Collection($this->run($this->resolve(true, true)) ?? [])
+    return (new Collection($this->run($this->resolve(true, true)) ?? []))
     ->map(fn($item) => new ($this->instance::class)($item, true, true), false);
   }
 
@@ -220,10 +220,10 @@ class Query {
     }
 
     if (is_array($items[0])) {
-      $this->collection = new Collection($items)
+      $this->collection = (new Collection($items))
       ->map(fn($item) => new ($this->instance::class)($item, $ignore), false);
 
-      return new Collection($this->run($this->resolve(true)) ?? [])
+      return (new Collection($this->run($this->resolve(true)) ?? []))
       ->map(fn($item) => new ($this->instance::class)($item, true, true), false);
     }
 

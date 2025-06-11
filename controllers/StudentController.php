@@ -41,7 +41,7 @@ class StudentController extends Controller {
       return ["error" => true, "message" => "Student already registered."];
     }
 
-    $user = new User([
+    $user = (new User([
       ...$this->request->only([
         "name",
         "paternal_lastname",
@@ -50,15 +50,15 @@ class StudentController extends Controller {
         "password",
       ]),
       "type" => "student",
-    ])->save();
+    ]))->save();
 
-    new Student([
+    (new Student([
       ...$this->request->only([
         "id",
         "major_id",
       ]),
       "user_id" => $user->id,
-    ])->save();
+    ]))->save();
 
     return "Ok";
   }

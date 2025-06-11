@@ -97,7 +97,7 @@ CREATE TABLE projects (
 
 CREATE TABLE project_student (
   project_id integer NOT NULL,
-  student_id integer NOT NULL
+  student_id varchar(10) NOT NULL,
   FOREIGN KEY(student_id) REFERENCES students(id) ON UPDATE CASCADE,
   FOREIGN KEY(project_id) REFERENCES projects(id) ON UPDATE CASCADE,
   PRIMARY KEY(student_id, project_id)

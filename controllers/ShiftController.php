@@ -36,9 +36,9 @@ class ShiftController extends Controller {
       return ["error" => true, "message" => "Unauthorized."];
     }
 
-    new Shift($this->request->only([
+    (new Shift($this->request->only([
       "name",
-    ]))->save();
+    ])))->save();
 
     return "Ok";
   }

@@ -28,12 +28,12 @@ class ProjectController extends Controller {
       return ["error" => true, "message" => "Unauthorized."];
     }
 
-    $project = new Project($this->request->only([
+    $project = (new Project($this->request->only([
       "name",
       "description",
       "group_id",
       "subject_id",
-    ]))->save();
+    ])))->save();
 
     $project->attach(Student::class, $this->user->student()->id);
 

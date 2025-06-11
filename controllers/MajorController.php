@@ -36,9 +36,9 @@ class MajorController extends Controller {
       return ["error" => true, "message" => "Unauthorized."];
     }
 
-    new Major($this->request->only([
+    (new Major($this->request->only([
       "name",
-    ]))->save();
+    ])))->save();
 
     return "Ok";
   }

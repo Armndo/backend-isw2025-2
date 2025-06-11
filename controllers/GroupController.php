@@ -36,11 +36,11 @@ class GroupController extends Controller {
       return ["error" => true, "message" => "Unauthorized."];
     }
 
-    new Group($this->request->only([
+    (new Group($this->request->only([
       "name",
       "shift_id",
       "major_id",
-    ]))->save();
+    ])))->save();
 
     return "Ok";
   }

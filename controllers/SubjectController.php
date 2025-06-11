@@ -36,10 +36,10 @@ class SubjectController extends Controller {
       return ["error" => true, "message" => "Unauthorized."];
     }
 
-    new Subject($this->request->only([
+    (new Subject($this->request->only([
       "name",
       "major_id",
-    ]))->save();
+    ])))->save();
 
     return "Ok";
   }
