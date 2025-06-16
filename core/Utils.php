@@ -210,7 +210,13 @@ class Utils {
 
   public static function serialize(mixed $serializable): mixed {
     if (is_object($serializable) && method_exists($serializable, "toAssoc")) {
-      return $serializable->toAssoc();
+      if ($serializable instanceof Collection) {
+        foreach ($serializable as &$item) {
+          $item = static::serialize($item);
+        }
+      }
+
+      return static::serialize($serializable->toAssoc());
     }
 
     if (is_array($serializable)) foreach($serializable as &$item) {
