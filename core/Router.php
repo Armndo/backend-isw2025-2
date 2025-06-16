@@ -1,6 +1,9 @@
 <?php
 namespace Core;
 
+use Exception;
+use Throwable;
+
 class Router {
   private static array $routes = [];
 
@@ -42,12 +45,17 @@ class Router {
           ARRAY_FILTER_USE_KEY
         );
 
-        if (is_array($callback)) {
-          [$class, $method] = $callback;
-          $controller = new $class();
-          $resolved = $controller->$method(...$params);
-        } else {
-          $resolved = $callback(...$params);
+        try {
+          if (is_array($callback)) {
+            [$class, $method] = $callback;
+            $controller = new $class();
+            $resolved = $controller->$method(...$params);
+          } else {
+            $resolved = $callback(...$params);
+          }
+        } catch (Exception|Throwable $e) {
+          http_response_code(500);
+          return json_encode(["error" => true, "message" => getenv("DEBUG") ? $e->getMessage() : "Server error."]);
         }
 
         if (is_object($resolved) && method_exists($resolved, "toJson")) {

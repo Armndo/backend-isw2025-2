@@ -2,6 +2,7 @@
 namespace Controllers;
 
 use Core\Controller;
+use Exception;
 use Models\Group;
 use Models\Student;
 use Models\Subject;
@@ -32,33 +33,39 @@ class StudentController extends Controller {
 
   public function store() {
     if (User::where("email", $this->request->email)->first()) {
-      http_response_code(500);
+      http_response_code(400);
       return ["error" => true, "message" => "Email already registered."];
     }
 
     if (Student::find($this->request->id)) {
-      http_response_code(500);
+      http_response_code(400);
       return ["error" => true, "message" => "Student already registered."];
     }
 
-    $user = (new User([
-      ...$this->request->only([
-        "name",
-        "paternal_lastname",
-        "maternal_lastname",
-        "email",
-        "password",
-      ]),
-      "type" => "student",
-    ]))->save();
+    try {
+      $user = (new User([
+        ...$this->request->only([
+          "name",
+          "paternal_lastname",
+          "maternal_lastname",
+          "email",
+          "password",
+        ]),
+        "type" => "student",
+      ]))->save();
 
-    (new Student([
-      ...$this->request->only([
-        "id",
-        "major_id",
-      ]),
-      "user_id" => $user->id,
-    ]))->save();
+      (new Student([
+        ...$this->request->only([
+          "id",
+          "major_id",
+        ]),
+        "user_id" => $user->id,
+      ]))->save();
+    } catch (Exception) {
+      $user?->delete() ?? null;
+      http_response_code(400);
+      return ["error" => true, "message" => "Couldn't store student."];
+    }
 
     return "Ok";
   }
@@ -72,21 +79,26 @@ class StudentController extends Controller {
     $student = Student::find($id);
 
     if (!$student) {
-      http_response_code(400);
+      http_response_code(404);
       return ["error" => true, "message" => "Student doesn't exist."];
     }
 
-    $student->fill($this->request->only([
-      "id",
-    ]))->save();
+    try {
+      $student->fill($this->request->only([
+        "id",
+      ]))->save();
 
-    $student->user()->fill($this->request->only([
-      "name",
-      "paternal_lastname",
-      "maternal_lastname",
-      "email",
-      "password"
-    ]))->save();
+      $student->user()->fill($this->request->only([
+        "name",
+        "paternal_lastname",
+        "maternal_lastname",
+        "email",
+        "password"
+      ]))->save();
+    } catch (Exception) {
+      http_response_code(400);
+      return ["error" => true, "message" => "Couldn't update student."];
+    }
 
     return "Ok";
   }
@@ -118,7 +130,12 @@ class StudentController extends Controller {
       return ["error" => true, "message" => "Subject doesn't exist."];
     }
 
-    if (!$student->attach(Subject::class, [$subject->id => ["group_id" => $group->id]], "enrolled", ["group_id"])) {
+    try {
+      if (!$student->attach(Subject::class, [$subject->id => ["group_id" => $group->id]], "enrolled", ["group_id"])) {
+        http_response_code(400);
+        return ["error" => true, "message" => "Couldn't enroll."];
+      }
+    } catch (Exception) {
       http_response_code(400);
       return ["error" => true, "message" => "Couldn't enroll."];
     }

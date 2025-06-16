@@ -6,11 +6,6 @@ use Models\Major;
 
 class MajorController extends Controller {
   public function index() {
-    if (!$this->session) {
-      http_response_code(401);
-      return ["error" => true, "message" => "Unauthorized."];
-    }
-
     return Major::get();
   }
 

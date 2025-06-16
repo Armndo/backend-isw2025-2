@@ -86,7 +86,7 @@ class Query {
       $limit = $this->limit === null ? "" : " LIMIT $this->limit";
       $joins = sizeof($this->joins) === 0 ? "" : " JOIN " . implode(" JOIN ", $this->joins);
 
-      if (getenv("DEBUG")) {
+      if (getenv("DEBUG_QUERIES")) {
         print_r("SELECT $selects FROM \"$table\"$joins$wheres$orderBy$limit\n");
       }
       
@@ -103,7 +103,7 @@ class Query {
       $id = Utils::valueToString($this->instance->getLastIdentifier());
       $wheres = $update ? Utils::wheres($this->wheres, $this->ors, true) : " WHERE \"$identifier\" = $id";
 
-      if (getenv("DEBUG")) {
+      if (getenv("DEBUG_QUERIES")) {
         print_r("UPDATE \"$table\" SET $values$wheres RETURNING *\n");
       }
       
@@ -115,7 +115,7 @@ class Query {
     if ($delete) {
       $wheres = Utils::wheres($this->wheres, $this->ors, true);
 
-      if (getenv("DEBUG")) {
+      if (getenv("DEBUG_QUERIES")) {
         print_r("DELETE FROM \"$table\"$wheres\n");
       }
       
@@ -127,7 +127,7 @@ class Query {
     $values = Utils::values($this->collection ? $this->instance->getFillable() : $fields, $appends, collection: $this->collection);
     $fields = Utils::fields($this->collection ? $this->instance->getFillable() : $fields, $appends, $this->collection);
 
-    if (getenv("DEBUG")) {
+    if (getenv("DEBUG_QUERIES")) {
       print_r("INSERT INTO \"$table\" ($fields) VALUES $values RETURNING *\n");
     }
     
@@ -354,16 +354,10 @@ class Query {
       return null;
     }
 
-    try {
-      $conn = (new Connection())->getConnection();
-      $query = $conn->prepare($sql);
-      $query->execute();
+    $conn = (new Connection())->getConnection();
+    $query = $conn->prepare($sql);
+    $query->execute();
 
-      return $query->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-      die("Error: " . $e->getMessage());
-    } finally {
-      $conn = null;
-    }
+    return $query->fetchAll(PDO::FETCH_ASSOC);
   }
 }
