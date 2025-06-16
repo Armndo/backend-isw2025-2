@@ -136,6 +136,20 @@ class Model extends ArrayObject {
     return $this;
   }
 
+  public function appends(string|array $appendables): static {
+    if (is_string($appendables)) {
+      $appendables = [$appendables];
+    }
+
+    foreach ($appendables as $appendable) {
+      if (!isset($this->$appendable) && method_exists(static::class, $appendable)) {
+        $this->{$appendable} = $this->{$appendable}();
+      }
+    }
+
+    return $this;
+  }
+
   public function toAssoc(bool $ignore = false): array {
     $arr = [];
 

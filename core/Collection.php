@@ -92,6 +92,16 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable {
     return $this;
   }
 
+  public function appends(string|array $appendables): self {
+    foreach ($this->items as $item) {
+      if (is_object($item) && method_exists($item, "appends")) {
+        $item->appends($appendables);
+      }
+    }
+
+    return $this;
+  }
+
   public function toJson(bool $ignore = false): string {
     return json_encode($this->toAssoc($ignore), JSON_PRETTY_PRINT);
   }
@@ -100,7 +110,7 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable {
     $arr = [];
 
     foreach($this->items as $item) {
-      $arr[] = $item->toAssoc($ignore);
+      $arr[] = is_object($item) && method_exists($item, "toAssoc") ? $item->toAssoc($ignore) : $item;
     }
 
     return $arr;
