@@ -7,6 +7,7 @@ foreach ($env as $key => $value) {
 }
 
 use Controllers\GroupController;
+use Controllers\MainController;
 use Controllers\MajorController;
 use Controllers\ProjectController;
 use Controllers\ShiftController;
@@ -61,5 +62,7 @@ Router::post("/teachers/{id}", [TeacherController::class, "update"]);
 Router::post("/teachers/{id}/teach", [TeacherController::class, "teach"]);
 Router::get("/teachers/{id}/subjects", [TeacherController::class, "subjects"]);
 Router::get("/teachers/{id}/groups", [TeacherController::class, "groups"]);
+
+Router::get("/main", [MainController::class, "main"]);
 
 print(Router::resolve());

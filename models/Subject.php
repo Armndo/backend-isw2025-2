@@ -1,7 +1,6 @@
 <?php
 namespace Models;
 
-use Core\Collection;
 use Core\Model;
 
 class Subject extends Model {
@@ -11,11 +10,6 @@ class Subject extends Model {
   ];
 
   protected $hidden = [
-    "id",
     "major_id",
   ];
-
-  // public function users(): Collection {
-  //   return $this->belongs(User::class, true);
-  // }
 }

@@ -15,7 +15,11 @@ class User extends Model {
     "password",
   ];
 
-  public static function check($credentials) {
+  protected $hidden = [
+    "password",
+  ];
+
+  public static function check($credentials): ?Session {
     return static::where("email", $credentials["email"])->where("password", $credentials["password"])->first();
   }
 

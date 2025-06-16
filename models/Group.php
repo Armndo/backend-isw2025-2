@@ -12,12 +12,11 @@ class Group extends Model {
   ];
 
   protected $hidden = [
-    "id",
     "shift_id",
     "major_id",
   ];
 
-  // public function users(): Collection {
-  //   return $this->belongs(User::class, true);
-  // }
+  public function students(): Collection {
+    return $this->belongs(Student::class, true, "enrolled");
+  }
 }
