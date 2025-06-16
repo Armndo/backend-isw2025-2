@@ -42,6 +42,10 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable {
     return sizeof($this->items);
   }
 
+  public function has(mixed $item): bool {
+    return in_array($item, $this->items);
+  }
+
   public function unique(): self {
     $items = [];
 

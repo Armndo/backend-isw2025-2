@@ -98,7 +98,7 @@ class Model extends ArrayObject {
     return $this->stored;
   }
 
-  private function getFunction($name) {
+  private function getFunction(string $name): bool|string {
     if (method_exists($this, $name)) {
       return $name;
     }
@@ -142,8 +142,8 @@ class Model extends ArrayObject {
     }
 
     foreach ($appendables as $appendable) {
-      if (!isset($this->$appendable) && method_exists(static::class, $appendable)) {
-        $this->{$appendable} = $this->{$appendable}();
+      if (!isset($this->$appendable) && method_exists(static::class, $this->getFunction($appendable))) {
+        $this->{$appendable} = $this->{$this->getFunction($appendable)}();
       }
     }
 

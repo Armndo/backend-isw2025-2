@@ -11,7 +11,7 @@ trait Relatable {
     return !$many ? $query->first() : $query->get();
   }
 
-  public function belongs($class, $many = false, $pivot = null, $fk = null, $pk = null): null|Model|Collection {
+  public function belongs(string $class, bool $many = false, ?string $pivot = null, ?string $fk = null, ?string $pk = null, ?string $orderBy = null, ?string $direction = "ASC"): null|Model|Collection {
     $fk = Utils::getKey($class, $fk);
 
     if (!$many) {
@@ -31,6 +31,7 @@ trait Relatable {
     ->join($pivot, "$pivot.$fk", "$instance->table." . $instance->getIdentifier())
     ->join($this->table, "$this->table.$this->identifier", "$pivot.$pk")
     ->where("$pivot.$pk", $this->$identifier)
+    ->orderBy($orderBy ?? $instance->getIdentifier(), $direction)
     ->get()
     ->unique();
   }
