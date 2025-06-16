@@ -115,8 +115,4 @@ class Collection implements ArrayAccess, IteratorAggregate, Countable {
 
     return $arr;
   }
-
-  public function __toString() {
-    return json_encode($this->items, JSON_PRETTY_PRINT);
-  }
 }

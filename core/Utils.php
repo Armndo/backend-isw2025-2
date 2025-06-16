@@ -208,6 +208,18 @@ class Utils {
     return implode("_", $tables);
   }
 
+  public static function serialize(mixed $serializable): mixed {
+    if (is_object($serializable) && method_exists($serializable, "toAssoc")) {
+      return $serializable->toAssoc();
+    }
+
+    if (is_array($serializable)) foreach($serializable as &$item) {
+      $item = static::serialize($item);
+    }
+
+    return $serializable;
+  }
+
   public static function flatten(array $arr): array {
     $res = [];
 

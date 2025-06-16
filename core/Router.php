@@ -53,13 +53,11 @@ class Router {
           } else {
             $resolved = $callback(...$params);
           }
+
+          $resolved = Utils::serialize($resolved);
         } catch (Exception|Throwable $e) {
           http_response_code(500);
           return json_encode(["error" => true, "message" => getenv("DEBUG") ? $e->getMessage() : "Server error."]);
-        }
-
-        if (is_object($resolved) && method_exists($resolved, "toJson")) {
-          return $resolved->toJson();
         }
 
         return json_encode($resolved, JSON_PRETTY_PRINT);

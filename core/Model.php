@@ -151,8 +151,4 @@ class Model extends ArrayObject {
   public function toJson(bool $ignore = false): string {
     return json_encode($this->toAssoc($ignore), JSON_PRETTY_PRINT);
   }
-
-  public function __toString(): string {
-    return json_encode($this, JSON_PRETTY_PRINT);
-  }
 }
