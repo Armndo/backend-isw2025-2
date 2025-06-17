@@ -3,6 +3,7 @@ namespace Models;
 
 use Core\Collection;
 use Core\Model;
+use Core\Query;
 
 class Student extends Model {
   protected $fillable = [
@@ -34,7 +35,7 @@ class Student extends Model {
     return $this->belongs(Group::class, true, "enrolled");
   }
 
-  public function subjects(): Collection {
-    return $this->belongs(Subject::class, true, "enrolled");
+  public function subjects(bool $asQuery = false): Query|Collection {
+    return $this->belongs(Subject::class, true, "enrolled", asQuery: $asQuery);
   }
 }

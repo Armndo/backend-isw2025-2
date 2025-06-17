@@ -82,8 +82,8 @@ class Request extends ArrayObject {
     return $this->attributes;
   }
 
-  public function exists(string $attribute) {
-    return in_array($attribute, $this->attributes);
+  public function has(string $attribute) {
+    return isset($this->attributes[$attribute]);
   }
 
   public function only(array $attributes) {

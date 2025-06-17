@@ -2,8 +2,10 @@
 namespace Controllers;
 
 use Core\Controller;
+use Models\Group;
 use Models\Project;
 use Models\Student;
+use Models\Subject;
 
 class ProjectController extends Controller {
   public function index() {
@@ -25,6 +27,27 @@ class ProjectController extends Controller {
     }
 
     return $project;
+  }
+
+  public function create() {
+    if (!$this->user?->isAdmin() && !$this->user?->isStudent()) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
+    if ($this->user?->isStudent()) {
+      $student = $this->user?->student();
+
+      return [
+        "groups" => $student->groups(),
+        "subjects" => $this->request->has("group_id") ? $student->subjects(true)->where("group_id", +($this->request->group_id ?? 0))->get()->unique() : [],
+      ];
+    }
+
+    return [
+      "groups" => Group::get(),
+      "subjects" => Subject::get(),
+    ];
   }
 
   public function store() {

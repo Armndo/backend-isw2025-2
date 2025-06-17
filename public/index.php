@@ -42,6 +42,7 @@ Router::get("/users/{id}", [UserController::class, "view"]);
 
 Router::get("/projects", [ProjectController::class, "index"]);
 Router::post("/projects", [ProjectController::class, "store"]);
+Router::get("/projects/create", [ProjectController::class, "create"]);
 Router::get("/projects/{id}", [ProjectController::class, "view"]);
 Router::post("/projects/{id}", [ProjectController::class, "update"]);
 
