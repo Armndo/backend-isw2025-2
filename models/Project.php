@@ -17,6 +17,10 @@ class Project extends Model {
     "subject_id",
   ];
 
+  public function getOwnedAttribute() {
+    return true;
+  }
+
   public function students(): Collection {
     return $this->belongs(Student::class, true);
   }

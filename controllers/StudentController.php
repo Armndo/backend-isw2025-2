@@ -31,6 +31,13 @@ class StudentController extends Controller {
     return Student::find($id);
   }
 
+  public function search() {
+    $query = $this->request->query ?? "";
+    $ignore = implode(",", array_map(fn($item) => "'$item'", $this->request->ignore));
+
+    return $query !== "" ? Student::whereRaw("id ILIKE '%$query%' AND id NOT IN ($ignore)")->get()->appends("name") : [];
+  }
+
   public function store() {
     if (User::where("email", $this->request->email)->first()) {
       http_response_code(400);

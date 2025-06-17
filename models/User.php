@@ -19,7 +19,7 @@ class User extends Model {
     "password",
   ];
 
-  public static function check($credentials): ?Session {
+  public static function check($credentials): ?User {
     return static::where("email", $credentials["email"])->where("password", $credentials["password"])->first();
   }
 

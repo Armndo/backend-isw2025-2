@@ -19,11 +19,16 @@ class ProjectController extends Controller {
       exit();
     }
 
+    if ($this->user?->isAdmin() || $project->students()->has($this->user?->student())) {
+      $project->appends(["owned", "students"]);
+      $project->students->appends("name");
+    }
+
     return $project;
   }
 
   public function store() {
-    if (!$this->user?->isAdmin() && $this->user?->type !== "student") {
+    if (!$this->user?->isAdmin() && !$this->user?->isStudent()) {
       http_response_code(401);
       return ["error" => true, "message" => "Unauthorized."];
     }
@@ -41,12 +46,21 @@ class ProjectController extends Controller {
   }
 
   public function update($id) {
+    if (!$this->session) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
     $project = Project::find(+$id);
 
     if (!$project) {
       http_response_code(400);
-      print("invalid request");
-      exit();
+      return ["error" => true, "message" => "Project doesn't exist."];
+    }
+
+    if (!$this->user?->isAdmin() && !$project->students()->has($student = $this->user?->student())) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
     }
 
     $project->fill($this->request->only([
@@ -56,6 +70,16 @@ class ProjectController extends Controller {
       "subject_id",
     ]));
 
-    return $project->save();
+    $students = $this->request->students ?? [];
+
+    if ($this->user?->isStudent() && !in_array($student->id, $students)) {
+      $students[] = $student->id;
+    }
+
+    $project->sync(Student::class, $students);
+    $project->save()->appends("students");
+    $project->students->appends("name");
+
+    return $project;
   }
 }
