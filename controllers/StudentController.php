@@ -4,6 +4,7 @@ namespace Controllers;
 use Core\Controller;
 use Exception;
 use Models\Group;
+use Models\Project;
 use Models\Student;
 use Models\Subject;
 use Models\User;
@@ -32,10 +33,36 @@ class StudentController extends Controller {
   }
 
   public function search() {
-    $query = $this->request->query ?? "";
-    $ignore = implode(",", array_map(fn($item) => "'$item'", $this->request->ignore));
+    if (!$this->user?->isAdmin() && !$this->user?->isStudent()) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
 
-    return $query !== "" ? Student::whereRaw("id ILIKE '%$query%' AND id NOT IN ($ignore)")->get()->appends("name") : [];
+    $query = $this->request->query ?? "";
+    $ignore = $this->request->ignore ?? [];
+    $project = Project::find(+$this->request->project_id);
+
+    if (!$project) {
+      http_response_code(404);
+      return ["error" => true, "message" => "Project doesn't exist."];
+    }
+
+    $student = $this->user?->student();
+
+    if (!$project->students()->has($student)) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
+    $group = $project->group();
+    
+    if (!in_array($student?->id, $ignore)) {
+      $ignore[] = $student->id;
+    }
+
+    $inIgnore = implode(",", array_map(fn($item) => "'$item'", $ignore));
+
+    return $query !== "" && !empty($ignore) ? $group->students(true)->whereRaw("students.id ILIKE '%$query%' AND students.id NOT IN ($inIgnore) AND subject_id = $project->subject_id")->get()->unique()->appends("name") : [];
   }
 
   public function store() {

@@ -3,6 +3,7 @@ namespace Models;
 
 use Core\Collection;
 use Core\Model;
+use Core\Query;
 
 class Group extends Model {
   protected $fillable = [
@@ -16,7 +17,7 @@ class Group extends Model {
     "major_id",
   ];
 
-  public function students(): Collection {
-    return $this->belongs(Student::class, true, "enrolled");
+  public function students(bool $asQuery = false): Query|Collection {
+    return $this->belongs(Student::class, true, "enrolled", asQuery: $asQuery);
   }
 }
