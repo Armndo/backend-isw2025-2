@@ -20,4 +20,8 @@ class Group extends Model {
   public function students(bool $asQuery = false): Query|Collection {
     return $this->belongs(Student::class, true, "enrolled", asQuery: $asQuery);
   }
+
+  public function subjects(bool $asQuery = false): Query|Collection {
+    return $this->belongs(Subject::class, true, "enrolled", asQuery: $asQuery);
+  }
 }
