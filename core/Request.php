@@ -17,14 +17,19 @@ class Request extends ArrayObject {
       $this->headers[$header] = $value;
     }
 
-    $this->fillAttributes($this->headers["Content-Type"] ?? null);
+    $this->fillAttributes($_SERVER["REQUEST_METHOD"], $this->headers["Content-Type"] ?? null);
   }
 
   public function __get($name) {
     return $this->attributes[$name] ?? null;
   }
 
-  private function fillAttributes($type) {
+  private function fillAttributes(string $method, ?string $type) {
+    if ($method === "GET" && isset($_SERVER["QUERY_STRING"])) {
+      parse_str($_SERVER["QUERY_STRING"], $this->attributes); 
+      return ;
+    }
+
     switch ($type) {
       case "multipart/form-data":
         foreach ($_POST as $key => $value) {
@@ -48,13 +53,13 @@ class Request extends ArrayObject {
 
       default:
         http_response_code(400);
-        print("invalid content type");
+        print("Invalid Content Type.");
         exit();
     }
   }
 
   private function jsonAttributes() {
-    $json = json_decode(file_get_contents('php://input'), true);
+    $json = json_decode(file_get_contents("php://input"), true);
 
     if (json_last_error() !== JSON_ERROR_NONE) {
       http_response_code(400);
