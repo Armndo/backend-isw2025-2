@@ -2,6 +2,9 @@
 namespace Controllers;
 
 use Core\Controller;
+use Models\Group;
+use Models\Project;
+use Models\Subject;
 
 class MainController extends Controller {
   private function student() {
@@ -19,9 +22,23 @@ class MainController extends Controller {
     ];
   }
 
+  private function admin() {
+    return [
+      "user" => $this->user,
+      "student" => null,
+      "projects" => Project::get(),
+      "groups" => Group::get(),
+      "subjects" => Subject::get(),
+    ];
+  }
+
   public function main() {
     if ($this->user?->isStudent()) {
       return $this->student();
+    }
+
+    if ($this->user?->isAdmin()) {
+      return $this->admin();
     }
 
     http_response_code(401);

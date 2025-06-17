@@ -39,11 +39,11 @@ class User extends Model {
     return $this->has(Session::class, true);
   }
 
-  public function student(): Student {
+  public function student(): ?Student {
     return $this->has(Student::class);
   }
 
-  public function teacher(): Teacher {
+  public function teacher(): ?Teacher {
     return $this->has(Teacher::class);
   }
 }

@@ -33,7 +33,9 @@ class StudentController extends Controller {
   }
 
   public function search() {
-    if (!$this->user?->isAdmin() && !$this->user?->isStudent()) {
+    $isStudent = $this->user?->isStudent();
+
+    if (!$this->user?->isAdmin() && !$isStudent) {
       http_response_code(401);
       return ["error" => true, "message" => "Unauthorized."];
     }
@@ -49,14 +51,14 @@ class StudentController extends Controller {
 
     $student = $this->user?->student();
 
-    if (!$project->students()->has($student)) {
+    if ($isStudent && !$project->students()->has($student)) {
       http_response_code(401);
       return ["error" => true, "message" => "Unauthorized."];
     }
 
     $group = $project->group();
     
-    if (!in_array($student?->id, $ignore)) {
+    if ($isStudent && !in_array($student?->id, $ignore)) {
       $ignore[] = $student->id;
     }
 
