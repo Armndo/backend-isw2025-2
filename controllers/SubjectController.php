@@ -54,6 +54,7 @@ class SubjectController extends Controller {
 
     return (new Subject($this->request->only([
       "name",
+      "semester",
       "major_id",
     ])))->save();
   }
@@ -73,6 +74,7 @@ class SubjectController extends Controller {
 
     return $subject->fill($this->request->only([
       "name",
+      "semester",
       "major_id",
     ]))->save();
   }

@@ -69,6 +69,7 @@ class GroupController extends Controller {
 
     return (new Group($this->request->only([
       "name",
+      "semester",
       "shift_id",
       "major_id",
     ])))->save();
@@ -89,6 +90,7 @@ class GroupController extends Controller {
 
     $group->fill($this->request->only([
       "name",
+      "semester",
       "group_id",
       "major_id",
     ]))->save();

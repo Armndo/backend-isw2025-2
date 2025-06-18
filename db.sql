@@ -49,6 +49,7 @@ CREATE TABLE teachers (
 CREATE TABLE groups (
   id serial NOT NULL,
   name text NOT NULL,
+  semester int NOT NULL,
   shift_id int NOT NULL,
   major_id int NOT NULL,
   FOREIGN KEY(shift_id) REFERENCES shifts(id) ON UPDATE CASCADE,
@@ -59,6 +60,7 @@ CREATE TABLE groups (
 CREATE TABLE subjects (
   id serial NOT NULL,
   name text NOT NULL,
+  semester int NOT NULL,
   major_id int NOT NULL,
   FOREIGN KEY(major_id) REFERENCES majors(id) ON UPDATE CASCADE,
   PRIMARY KEY(id)

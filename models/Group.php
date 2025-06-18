@@ -8,11 +8,13 @@ use Core\Query;
 class Group extends Model {
   protected $fillable = [
     "name",
+    "semester",
     "shift_id",
     "major_id",
   ];
 
   protected $hidden = [
+    "semester",
     "shift_id",
     "major_id",
   ];

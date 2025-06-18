@@ -32,7 +32,7 @@ class StudentController extends Controller {
     return Student::find($id);
   }
 
-  public function search() {
+  public function search(bool $inProject = true) {
     $isStudent = $this->user?->isStudent();
 
     if (!$this->user?->isAdmin() && !$isStudent) {
@@ -41,6 +41,11 @@ class StudentController extends Controller {
     }
 
     $query = $this->request->query ?? "";
+    
+    if (!$inProject) {
+      return Student::whereRaw("id ILIKE '%$query%'")->get();
+    }
+
     $ignore = $this->request->ignore ?? [];
     $project = Project::find(+$this->request->project_id);
 
@@ -65,6 +70,15 @@ class StudentController extends Controller {
     $inIgnore = implode(",", array_map(fn($item) => "'$item'", $ignore));
 
     return $query !== "" && !empty($ignore) ? $group->students(true)->whereRaw("students.id ILIKE '%$query%' AND students.id NOT IN ($inIgnore) AND subject_id = $project->subject_id")->get()->unique()->appends("name") : [];
+  }
+
+  public function search2() {
+    if (!$this->user?->isAdmin()) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
+    return $this->search(false);
   }
 
   public function store() {
@@ -139,13 +153,36 @@ class StudentController extends Controller {
     return "Ok";
   }
 
-  public function enroll($id) {
-    if (!$this->user?->isAdmin() && $this->user?->student()?->id !== $id) {
+  public function preenroll(bool $admin = false) {
+    if (!$admin && $this->user?->isAdmin()) {
       http_response_code(401);
       return ["error" => true, "message" => "Unauthorized."];
     }
 
-    $student = Student::find($id);
+    if (!$this->user?->isAdmin() && !$this->user?->isStudent()) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
+    $student = $this->user?->isStudent() ? $this->user?->student() : Student::find($this->request->id);
+    $group = Group::find(+($this->request->group_id ?? 0));
+
+    return $student ? [
+      "groups" => Group::get(),
+      "subjects" => $group ? Subject::whereRaw("id NOT IN (SELECT subject_id FROM enrolled WHERE student_id = '$student->id') AND semester = $group->semester")->get() : [],
+    ] : [
+      "groups" => [],
+      "subjects" => [],
+    ];
+  }
+
+  public function enroll() {
+    if (!$this->user?->isAdmin() && !$this->user?->isStudent()) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
+    $student = $this->user?->isStudent() ? $this->user?->student() : Student::find($this->request->id);
 
     if (!$student) {
       http_response_code(400);

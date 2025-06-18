@@ -8,10 +8,12 @@ use Core\Query;
 class Subject extends Model {
   protected $fillable = [
     "name",
+    "semester",
     "major_id",
   ];
 
   protected $hidden = [
+    "semester",
     "major_id",
   ];
 

@@ -35,18 +35,20 @@ class ProjectController extends Controller {
       return ["error" => true, "message" => "Unauthorized."];
     }
 
+    $group = Group::find(+($this->request->group_id ?? 0));
+
     if ($this->user?->isStudent()) {
       $student = $this->user?->student();
 
       return [
         "groups" => $student->groups(),
-        "subjects" => $this->request->has("group_id") ? $student->subjects(true)->where("group_id", +($this->request->group_id ?? 0))->get()->unique() : [],
+        "subjects" => $group ? $student->subjects(true)->where("group_id", $group->id)->where("semester", $group->semester)->get()->unique() : [],
       ];
     }
 
     return [
       "groups" => Group::get(),
-      "subjects" => Subject::get(),
+      "subjects" => $group ? Subject::where("group_id", $group->id)->where("semester", $group->semester)->get() : [],
     ];
   }
 
