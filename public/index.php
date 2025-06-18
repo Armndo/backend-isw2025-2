@@ -17,6 +17,8 @@ use Controllers\TeacherController;
 use Controllers\UserController;
 use Core\Router;
 
+// usleep(250000); // testing
+
 Router::get("/majors", [MajorController::class, "index"]);
 Router::post("/majors", [MajorController::class, "store"]);
 Router::get("/majors/{id}", [MajorController::class, "view"]);
@@ -29,6 +31,7 @@ Router::post("/shifts/{id}", [ShiftController::class, "update"]);
 
 Router::get("/groups", [GroupController::class, "index"]);
 Router::post("/groups", [GroupController::class, "store"]);
+Router::get("/groups/create", [GroupController::class, "create"]);
 Router::get("/groups/{id}", [GroupController::class, "view"]);
 Router::post("/groups/{id}", [GroupController::class, "update"]);
 

@@ -150,6 +150,20 @@ class Model extends ArrayObject {
     return $this;
   }
 
+  public function makeVisible(string|array $hiddens): static {
+    if (is_string($hiddens)) {
+      $hiddens = [$hiddens];
+    }
+
+    foreach ($hiddens as $hidden) {
+      if (isset($hidden, $this->hidden)) {
+        array_splice($this->hidden, array_search($hidden, $this->hidden, true), 1);
+      }
+    }
+
+    return $this;
+  }
+
   public function toAssoc(bool $ignore = false): array {
     $arr = [];
 

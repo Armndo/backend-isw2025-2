@@ -3,6 +3,8 @@ namespace Controllers;
 
 use Core\Controller;
 use Models\Group;
+use Models\Major;
+use Models\Shift;
 
 class GroupController extends Controller {
   public function index() {
@@ -37,6 +39,8 @@ class GroupController extends Controller {
       return $group;
     }
 
+    $group->makeVisible(["shift_id", "major_id"]);
+
     foreach($group->appends("subjects")->subjects as &$subject) {
       $subject->appends("students");
       $subject->students->appends("name");
@@ -45,19 +49,29 @@ class GroupController extends Controller {
     return $group;
   }
 
+  public function create() {
+    if (!$this->user?->isAdmin()) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
+    return [
+      "shifts" => Shift::get(),
+      "majors" => Major::get(),
+    ];
+  }
+
   public function store() {
     if (!$this->user?->isAdmin()) {
       http_response_code(401);
       return ["error" => true, "message" => "Unauthorized."];
     }
 
-    (new Group($this->request->only([
+    return (new Group($this->request->only([
       "name",
       "shift_id",
       "major_id",
     ])))->save();
-
-    return "Ok";
   }
 
   public function update($id) {
