@@ -2,6 +2,7 @@
 namespace Controllers;
 
 use Core\Controller;
+use Models\Major;
 use Models\Subject;
 
 class SubjectController extends Controller {
@@ -27,7 +28,22 @@ class SubjectController extends Controller {
       return ["error" => true, "message" => "Subject doesn't exist."];
     }
 
+    if ($this->user?->isAdmin()) {
+      $subject->makeVisible("major_id");
+    }
+
     return $subject;
+  }
+
+  public function create() {
+    if (!$this->user?->isAdmin()) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
+    return [
+      "majors" => Major::get(),
+    ];
   }
 
   public function store() {
@@ -36,12 +52,10 @@ class SubjectController extends Controller {
       return ["error" => true, "message" => "Unauthorized."];
     }
 
-    (new Subject($this->request->only([
+    return (new Subject($this->request->only([
       "name",
       "major_id",
     ])))->save();
-
-    return "Ok";
   }
 
   public function update($id) {
@@ -57,11 +71,9 @@ class SubjectController extends Controller {
       return ["error" => true, "message" => "Subject doesn't exist."];
     }
 
-    $subject->fill($this->request->only([
+    return $subject->fill($this->request->only([
       "name",
       "major_id",
     ]))->save();
-
-    return "Ok";
   }
 }

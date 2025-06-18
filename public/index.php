@@ -37,6 +37,7 @@ Router::post("/groups/{id}", [GroupController::class, "update"]);
 
 Router::get("/subjects", [SubjectController::class, "index"]);
 Router::post("/subjects", [SubjectController::class, "store"]);
+Router::get("/subjects/create", [SubjectController::class, "create"]);
 Router::get("/subjects/{id}", [SubjectController::class, "view"]);
 Router::post("/subjects/{id}", [SubjectController::class, "update"]);
 
