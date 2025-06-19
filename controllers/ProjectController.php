@@ -17,8 +17,7 @@ class ProjectController extends Controller {
 
     if (!$project) {
       http_response_code(400);
-      print("invalid request");
-      exit();
+      return ["error" => true, "message" => "Project not found."];
     }
 
     if ($this->user?->isAdmin() || $project->students()->has($this->user?->student())) {
