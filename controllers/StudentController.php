@@ -70,7 +70,7 @@ class StudentController extends Controller {
     $inIgnore = implode(",", array_map(fn($item) => "'$item'", $ignore));
 
     if ($this->user?->isAdmin()) {
-      return Student::whereRaw("id NOT IN (SELECT DISTINCT student_id FROM enrolled WHERE group_id = $group->id AND subject_id = $project->subject_id)")->get()->appends("name");
+      return Student::whereRaw("id NOT IN (SELECT DISTINCT student_id FROM project_student WHERE project_id = $project->id)")->get()->appends("name");
     }
 
     return $query !== "" && !empty($ignore) ? $group->students(true)->whereRaw("students.id ILIKE '%$query%' AND students.id NOT IN ($inIgnore) AND subject_id = $project->subject_id")->get()->unique()->appends("name") : [];
