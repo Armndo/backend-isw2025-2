@@ -29,7 +29,7 @@ class MainController extends Controller {
       "projects" => Project::get(),
       "groups" => Group::get(),
       "subjects" => Subject::get(),
-      "students" => Student::get(),
+      "students" => Student::get()->appends("name"),
     ];
   }
 
