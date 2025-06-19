@@ -59,6 +59,7 @@ Router::post("/students", [StudentController::class, "store"]);
 Router::get("/students/search", [StudentController::class, "search"]);
 Router::get("/students/search2", [StudentController::class, "search2"]);
 Router::get("/students/enroll", [StudentController::class, "preenroll"]);
+Router::get("/students/enroll2", [StudentController::class, "preenroll2"]);
 Router::post("/students/enroll", [StudentController::class, "enroll"]);
 Router::get("/students/{id}", [StudentController::class, "view"]);
 Router::post("/students/{id}", [StudentController::class, "update"]);

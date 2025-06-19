@@ -43,7 +43,7 @@ class StudentController extends Controller {
     $query = $this->request->query ?? "";
     
     if (!$inProject) {
-      return Student::whereRaw("id ILIKE '%$query%'")->get();
+      return Student::whereRaw("id ILIKE '%$query%'")->get()->appends("name");
     }
 
     $ignore = $this->request->ignore ?? [];
@@ -164,7 +164,7 @@ class StudentController extends Controller {
       return ["error" => true, "message" => "Unauthorized."];
     }
 
-    $student = $this->user?->isStudent() ? $this->user?->student() : Student::find($this->request->id);
+    $student = $this->user?->isStudent() ? $this->user?->student() : Student::find($this->request->student_id ?? '');
     $group = Group::find(+($this->request->group_id ?? 0));
 
     return $student ? [
@@ -176,13 +176,22 @@ class StudentController extends Controller {
     ];
   }
 
+  public function preenroll2() {
+    if (!$this->user?->isAdmin()) {
+      http_response_code(401);
+      return ["error" => true, "message" => "Unauthorized."];
+    }
+
+    return $this->preenroll(true);
+  }
+
   public function enroll() {
     if (!$this->user?->isAdmin() && !$this->user?->isStudent()) {
       http_response_code(401);
       return ["error" => true, "message" => "Unauthorized."];
     }
 
-    $student = $this->user?->isStudent() ? $this->user?->student() : Student::find($this->request->id);
+    $student = $this->user?->isStudent() ? $this->user?->student() : Student::find($this->request->student_id	);
 
     if (!$student) {
       http_response_code(400);
