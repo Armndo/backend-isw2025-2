@@ -48,7 +48,7 @@ class ProjectController extends Controller {
 
     return [
       "groups" => Group::get(),
-      "subjects" => $group ? Subject::where("group_id", $group->id)->where("semester", $group->semester)->get() : [],
+      "subjects" => $group ? Subject::where("semester", $group->semester)->get() : [],
     ];
   }
 
