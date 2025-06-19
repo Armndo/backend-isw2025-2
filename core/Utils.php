@@ -183,8 +183,8 @@ class Utils {
     }, $orders));
   }
 
-  public static function token() {
-    return bin2hex(random_bytes(32));
+  public static function token(int $size = 32) {
+    return bin2hex(random_bytes($size));
   }
 
   public static function getKey($class, ?string $fk = null): string {
@@ -253,6 +253,7 @@ class Utils {
   }
 
   public static function dd(...$printables) {
+    http_response_code(500);
     static::dump(...$printables);
     exit();
   }

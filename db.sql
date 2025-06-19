@@ -113,3 +113,23 @@ CREATE TABLE signs (
   FOREIGN KEY(project_id) REFERENCES projects(id) ON UPDATE CASCADE,
   PRIMARY KEY(id)
 );
+
+CREATE TABLE visitors (
+  id text NOT NULL,
+  name text,
+  age text,
+  sex text,
+  PRIMARY KEY(id)
+);
+
+CREATE TABLE visits (
+  id serial NOT NULL,
+  comment text,
+  rating text,
+  counter int NOT NULL DEFAULT 1,
+  visitor_id text NOT NULL,
+  project_id integer NOT NULL,
+  FOREIGN KEY(visitor_id) REFERENCES visitors(id) ON UPDATE CASCADE,
+  FOREIGN KEY(project_id) REFERENCES projects(id) ON UPDATE CASCADE,
+  PRIMARY KEY(id)
+):

@@ -15,6 +15,7 @@ use Controllers\StudentController;
 use Controllers\SubjectController;
 use Controllers\TeacherController;
 use Controllers\UserController;
+use Controllers\VisitorController;
 use Core\Router;
 
 // usleep(250000); // testing
@@ -71,6 +72,9 @@ Router::post("/teachers/{id}", [TeacherController::class, "update"]);
 Router::post("/teachers/{id}/teach", [TeacherController::class, "teach"]);
 Router::get("/teachers/{id}/subjects", [TeacherController::class, "subjects"]);
 Router::get("/teachers/{id}/groups", [TeacherController::class, "groups"]);
+
+Router::get("/visit", [VisitorController::class, "visit"]);
+Router::post("/visit", [VisitorController::class, "fill"]);
 
 Router::get("/main", [MainController::class, "main"]);
 
