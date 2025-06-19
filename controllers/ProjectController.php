@@ -65,7 +65,9 @@ class ProjectController extends Controller {
       "subject_id",
     ])))->save();
 
-    $project->attach(Student::class, $this->user->student()->id);
+    if ($this->user?->isStudent()) {
+      $project->attach(Student::class, $this->user->student()->id);
+    }
 
     return $project;
   }
