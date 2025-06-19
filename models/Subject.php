@@ -13,7 +13,6 @@ class Subject extends Model {
   ];
 
   protected $hidden = [
-    "semester",
     "major_id",
   ];
 

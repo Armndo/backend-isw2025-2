@@ -14,7 +14,6 @@ class Group extends Model {
   ];
 
   protected $hidden = [
-    "semester",
     "shift_id",
     "major_id",
   ];
