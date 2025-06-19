@@ -4,6 +4,7 @@ namespace Controllers;
 use Core\Controller;
 use Models\Group;
 use Models\Project;
+use Models\Student;
 use Models\Subject;
 
 class MainController extends Controller {
@@ -25,10 +26,10 @@ class MainController extends Controller {
   private function admin() {
     return [
       "user" => $this->user,
-      "student" => null,
       "projects" => Project::get(),
       "groups" => Group::get(),
       "subjects" => Subject::get(),
+      "students" => Student::get(),
     ];
   }
 
