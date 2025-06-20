@@ -1,0 +1,363 @@
+<?php
+namespace Core;
+
+use Exception;
+use PDO;
+use PDOException;
+
+class Query {
+  private Model $instance;
+  private ?Collection $collection = null;
+  private $wheres = [];
+  private $ors = [];
+  private $joins = [];
+  private $orders = [];
+  private $selects = [ "*" ];
+  private $limit = null;
+
+  public function __construct(Model $instance) {
+    $this->instance = $instance;
+  }
+
+  public function select(...$selects): self {
+    if (sizeof($selects) === 1 && is_array($selects[0])) {
+      $selects = $selects[0];
+    }
+
+    $this->selects = $selects;
+
+    return $this;
+  }
+
+  public function where(...$conditions): self {
+    if (in_array(sizeof($conditions), [2, 3]) && array_reduce($conditions, fn($a, $b) => $a && gettype($b) !== "array", true)) {
+      $this->wheres[] = Utils::where($conditions);
+    } else if (sizeof($conditions) === 1) {
+      $this->wheres = [...$this->wheres, ...Utils::wheres($conditions[0])];
+    }
+
+    return $this;
+  }
+
+  public function orWhere(...$conditions): self {
+    $this->where(...$conditions);
+    $this->ors[] = sizeof($this->wheres) - 1;
+
+    return $this;
+  }
+
+  public function join(string $table, string $first, string $second): self {
+    $this->joins[] = (
+      "\"$table\" on " .
+      implode(".", array_map(fn($item) => "\"$item\"", explode(".", $first))) . " = " .
+      implode(".", array_map(fn($item) => "\"$item\"", explode(".", $second)))
+    );
+
+    return $this;
+  }
+
+  public function orderBy($field, $direction = "ASC"): self {
+    $this->orders[] = [$field, $direction];
+
+    return $this;
+  }
+
+  public function whereRaw(string $raw): self {
+    $this->wheres[] = $raw;
+
+    return $this;
+  }
+
+  public function orWhereRaw(string $raw): self {
+    $this->wheres[] = $raw;
+    $this->ors[] = sizeof($this->wheres) - 1;
+
+    return $this;
+  }
+
+  private function resolve(bool $exec = false, bool $update = false, bool $delete = false, bool $count = false): ?string {
+    $table = $this->instance->getTable();
+    $fields = $this->instance->getFields();
+
+    if (!$exec) {
+      $selects = Utils::selects($this->selects, $count);
+      $wheres = Utils::wheres($this->wheres, $this->ors, true);
+      $orderBy = Utils::orders($this->orders);
+      $limit = $this->limit === null ? "" : " LIMIT $this->limit";
+      $joins = sizeof($this->joins) === 0 ? "" : " JOIN " . implode(" JOIN ", $this->joins);
+
+      if (getenv("DEBUG_QUERIES")) {
+        print_r("SELECT $selects FROM \"$table\"$joins$wheres$orderBy$limit\n");
+      }
+      
+      if (!getenv("STOP_QUERIES")) {
+        return "SELECT $selects FROM \"$table\"$joins$wheres$orderBy$limit";
+      }
+    }
+
+    $identifier = $this->instance->getIdentifier();
+    $appends = $this->instance->getAppends();
+
+    if (!$delete && ((isset($fields[$identifier]) && $this->instance->getStored() || $update))) {
+      $values = Utils::values($fields, $appends, true, $identifier);
+      $id = Utils::valueToString($this->instance->getLastIdentifier());
+      $wheres = $update ? Utils::wheres($this->wheres, $this->ors, true) : " WHERE \"$identifier\" = $id";
+
+      if (getenv("DEBUG_QUERIES")) {
+        print_r("UPDATE \"$table\" SET $values$wheres RETURNING *\n");
+      }
+      
+      if (!getenv("STOP_QUERIES")) {
+        return "UPDATE \"$table\" SET $values$wheres RETURNING *";
+      }
+    }
+
+    if ($delete) {
+      $wheres = Utils::wheres($this->wheres, $this->ors, true);
+
+      if (getenv("DEBUG_QUERIES")) {
+        print_r("DELETE FROM \"$table\"$wheres\n");
+      }
+      
+      if (!getenv("STOP_QUERIES")) {
+        return "DELETE FROM \"$table\"$wheres";
+      }
+    }
+
+    $values = Utils::values($this->collection ? $this->instance->getFillable() : $fields, $appends, collection: $this->collection);
+    $fields = Utils::fields($this->collection ? $this->instance->getFillable() : $fields, $appends, $this->collection);
+
+    if (getenv("DEBUG_QUERIES")) {
+      print_r("INSERT INTO \"$table\" ($fields) VALUES $values RETURNING *\n");
+    }
+    
+    if (!getenv("STOP_QUERIES")) {
+      return "INSERT INTO \"$table\" ($fields) VALUES $values RETURNING *";
+    }
+
+    return null;
+  }
+
+  public function find(int|string $id): ?Model {
+    $this->where($this->instance->getIdentifier(), $id);
+    $this->limit = 1;
+    $result = $this->run($this->resolve());
+
+    if (sizeof($result ?? []) < 1) {
+      return null;
+    }
+
+    return $this->instance->fill($result[0], true, true);
+  }
+
+  public function get(?string $class = null): Collection {
+    return (new Collection($this->run($this->resolve()) ?? []))
+    ->map(fn($item) => new ($class ?? $this->instance::class)($item, true, true), false);
+  }
+
+  public function count(): int {
+    return $this->run($this->resolve(count: true))[0]["count"] ?? 0;
+  }
+
+  public function first(?string $class = null): ?Model {
+    $this->limit = 1;
+
+    $object = $this->run($this->resolve());
+
+    return sizeof($object ?? []) > 0 ? new ($class ?? $this->instance::class)($object[0], true, true) : null;
+  }
+
+  private function chainWheres(array $wheres, array $orWheres = []) {
+    foreach ($wheres as $where) {
+      $this->where(...$where);
+    }
+
+    if (sizeof($orWheres) === 1) {
+      $this->where(...$orWheres[0]);
+    } else {
+      foreach ($orWheres as $where) {
+        $this->orWhere(...$where);
+      }
+    }
+  }
+
+  public function exists(array $wheres, array $orWheres = [], bool $return = false): null|bool|Model|Collection {
+    $this->chainWheres($wheres, $orWheres);
+    $count = $this->count();
+
+    if ($return) {
+      return $count > 1 ? $this->get() : $this->first();
+    }
+
+    return $count > 0;
+  }
+
+  public function save(): Model {
+    return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
+  }
+
+  public function delete(array $wheres = [], array $orWheres = []): bool {
+    if (sizeof($wheres) === 0) {
+      $identifier = $this->instance->getIdentifier();
+      $this->where($identifier, $this->instance->$identifier);
+    } else {
+      $this->chainWheres($wheres, $orWheres);
+    }
+
+    return sizeof($this->run($this->resolve(true, delete: true))) > 0;
+  }
+
+  public function update(array $fields): Collection {
+    $this->instance->fill($fields, true);
+
+    return (new Collection($this->run($this->resolve(true, true)) ?? []))
+    ->map(fn($item) => new ($this->instance::class)($item, true, true), false);
+  }
+
+  public function create(array $items, bool $ignore = false): null|Model|Collection {
+    if (sizeof($items) === 0) {
+      return null;
+    }
+
+    if (is_array($items[0])) {
+      $this->collection = (new Collection($items))
+      ->map(fn($item) => new ($this->instance::class)($item, $ignore), false);
+
+      return (new Collection($this->run($this->resolve(true)) ?? []))
+      ->map(fn($item) => new ($this->instance::class)($item, true, true), false);
+    }
+
+    $this->instance->fill($items);
+    return $this->instance->fill(($this->run($this->resolve(true), true) ?? [[]])[0], true, true);
+  }
+
+  private function compact(array $ids, array $asForeign): array {
+    foreach ($ids as $key => $value) {
+      if (!empty($asForeign)) {
+        return [[$key => $value], !is_array($value) && is_string($value)];
+      }
+
+      if (!is_array($value) && is_string($value)) {
+        return [$ids, true];
+      }
+    }
+
+    return [$ids, false];
+  }
+
+  public function attach(string $class, int|string|array $ids, ?string $table = null, array $asForeign = []): bool {
+    $instance = $this->instance;
+    $instance_key = Utils::getKey($instance::class);
+    $instance_id = $instance->{$instance->getIdentifier()};
+    $class_key = Utils::getKey($class);
+
+    $model = new Model();
+    $model->setTable($table ?? Utils::getPivot([$instance::class, $class]));
+
+    if (is_string($ids) || is_numeric($ids)) {
+      if (Model::exists([
+        [$instance_key, $instance_id],
+        [$class_key, $ids],
+      ], model: $model)) {
+        return false;
+      }
+
+      $model->fill([
+        $instance_key => $instance_id,
+        $class_key => $ids,
+      ], true)
+      ->save();
+
+      return true;
+    }
+
+    if (sizeof($ids) === 0) {
+      return false;
+    }
+
+    [$ids, $isString] = $this->compact($ids, $asForeign);
+
+    $model->setFillable(array_unique([
+      $instance_key,
+      $class_key,
+      ...array_keys(Utils::flatten(
+        array_map(fn($value) => is_array($value) ? $value : [], array_values($ids))
+      )),
+    ]));
+
+    if (!Model::exists(
+      array_merge([[$instance_key, $instance_id]], ...array_map(fn($item) => is_array($item) ? array_map(fn($key, $value) => in_array($key, $asForeign) ? [$key, $value] : [], array_keys($item), array_values($item)) : [], $ids)),
+      array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
+      model: $model
+    )) {
+      Model::create(
+        array_map(fn($key, $value) => [
+          $instance_key => $instance_id,
+          $class_key => (is_array($value) ? ($isString ? "$key" : $key) : $value),
+          ...(is_array($value) ? $value : []),
+        ], array_keys($ids), array_values($ids)),
+        $model
+      );
+
+      return true;
+    }
+    
+    return false;
+  }
+
+  public function detach(string $class, int|string|array $ids = [], ?string $table = null, array $asForeign = []): bool {
+    $instance = $this->instance;
+    $instance_key = Utils::getKey($instance::class);
+    $instance_id = $instance->{$instance->getIdentifier()};
+    $class_key = Utils::getKey($class);
+
+    $model = new Model();
+    $model->setTable($table ?? Utils::getPivot([$instance::class, $class]));
+
+    if (is_string($ids) || is_numeric($ids)) {
+      if (!Model::exists([
+        [$instance_key, $instance_id],
+        [$class_key, $ids],
+      ], model: $model)) {
+        return false;
+      }
+
+      return $model->delete([
+        [$instance_key, $instance_id],
+        [$class_key, $ids],
+      ]);
+    }
+
+    [$ids, $isString] = $this->compact($ids, $asForeign);
+
+    if (Model::exists(
+      array_merge([[$instance_key, $instance_id]], ...array_map(fn($item) => is_array($item) ? array_map(fn($key, $value) => in_array($key, $asForeign) ? [$key, $value] : [], array_keys($item), array_values($item)) : [], $ids)),
+      array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
+      model: $model
+    )) {
+      return $model->delete(
+        array_merge([[$instance_key, $instance_id]], ...array_map(fn($item) => is_array($item) ? array_map(fn($key, $value) => in_array($key, $asForeign) ? [$key, $value] : [], array_keys($item), array_values($item)) : [], $ids)),
+        array_map(fn($key, $value) => [$class_key, is_array($value) ? ($isString ? "$key" : $key) : $value], array_keys($ids), array_values($ids)),
+      );
+    }
+
+    return false;
+  }
+
+  public function sync(string $class, int|string|array $ids = [], ?string $table = null): bool {
+    $this->detach($class, table: $table);
+    return $this->attach($class, $ids, $table);
+  }
+
+  private function run(?string $sql): ?array {
+    if (!$sql) {
+      return null;
+    }
+
+    $conn = (new Connection())->getConnection();
+    $query = $conn->prepare($sql);
+    $query->execute();
+
+    return $query->fetchAll(PDO::FETCH_ASSOC);
+  }
+}
